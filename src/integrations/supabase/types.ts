@@ -113,6 +113,7 @@ export type Database = {
       }
       gigs: {
         Row: {
+          attachments: Json
           category_id: string | null
           cover_url: string | null
           created_at: string
@@ -120,8 +121,10 @@ export type Database = {
           description: string
           freelancer_id: string
           id: string
+          likes_count: number
           rating: number | null
           reviews_count: number | null
+          saves_count: number
           starting_price: number
           status: Database["public"]["Enums"]["gig_status"]
           tags: string[] | null
@@ -129,6 +132,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attachments?: Json
           category_id?: string | null
           cover_url?: string | null
           created_at?: string
@@ -136,8 +140,10 @@ export type Database = {
           description: string
           freelancer_id: string
           id?: string
+          likes_count?: number
           rating?: number | null
           reviews_count?: number | null
+          saves_count?: number
           starting_price: number
           status?: Database["public"]["Enums"]["gig_status"]
           tags?: string[] | null
@@ -145,6 +151,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attachments?: Json
           category_id?: string | null
           cover_url?: string | null
           created_at?: string
@@ -152,8 +159,10 @@ export type Database = {
           description?: string
           freelancer_id?: string
           id?: string
+          likes_count?: number
           rating?: number | null
           reviews_count?: number | null
+          saves_count?: number
           starting_price?: number
           status?: Database["public"]["Enums"]["gig_status"]
           tags?: string[] | null
@@ -173,6 +182,32 @@ export type Database = {
             columns: ["freelancer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_likes: {
+        Row: {
+          created_at: string
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_likes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -205,6 +240,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          attachments: Json
           budget_max: number | null
           budget_min: number | null
           category_id: string | null
@@ -214,13 +250,16 @@ export type Database = {
           experience_level: string | null
           id: string
           is_hourly: boolean | null
+          likes_count: number
           proposals_count: number | null
+          saves_count: number
           skills: string[] | null
           status: Database["public"]["Enums"]["job_status"]
           title: string
           updated_at: string
         }
         Insert: {
+          attachments?: Json
           budget_max?: number | null
           budget_min?: number | null
           category_id?: string | null
@@ -230,13 +269,16 @@ export type Database = {
           experience_level?: string | null
           id?: string
           is_hourly?: boolean | null
+          likes_count?: number
           proposals_count?: number | null
+          saves_count?: number
           skills?: string[] | null
           status?: Database["public"]["Enums"]["job_status"]
           title: string
           updated_at?: string
         }
         Update: {
+          attachments?: Json
           budget_max?: number | null
           budget_min?: number | null
           category_id?: string | null
@@ -246,7 +288,9 @@ export type Database = {
           experience_level?: string | null
           id?: string
           is_hourly?: boolean | null
+          likes_count?: number
           proposals_count?: number | null
+          saves_count?: number
           skills?: string[] | null
           status?: Database["public"]["Enums"]["job_status"]
           title?: string
@@ -317,6 +361,8 @@ export type Database = {
           hourly_rate: number | null
           id: string
           location: string | null
+          rating: number
+          reviews_count: number
           skills: string[] | null
           updated_at: string
           username: string | null
@@ -330,6 +376,8 @@ export type Database = {
           hourly_rate?: number | null
           id: string
           location?: string | null
+          rating?: number
+          reviews_count?: number
           skills?: string[] | null
           updated_at?: string
           username?: string | null
@@ -343,11 +391,64 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           location?: string | null
+          rating?: number
+          reviews_count?: number
           skills?: string[] | null
           updated_at?: string
           username?: string | null
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          author_id: string
+          comment: string | null
+          created_at: string
+          gig_id: string | null
+          id: string
+          job_id: string | null
+          rating: number
+          subject_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          comment?: string | null
+          created_at?: string
+          gig_id?: string | null
+          id?: string
+          job_id?: string | null
+          rating: number
+          subject_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          comment?: string | null
+          created_at?: string
+          gig_id?: string | null
+          id?: string
+          job_id?: string | null
+          rating?: number
+          subject_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
