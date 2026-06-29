@@ -25,13 +25,19 @@ export function Reviews({ subjectId, gigId, jobId, title = "Reviews" }: ReviewsP
     queryFn: async () => {
       let q = supabase
         .from("reviews")
-        .select("id,author_id,rating,comment,created_at,profiles!reviews_author_id_fkey(display_name,avatar_url)")
+        .select("id,author_id,rating,comment,created_at")
         .eq("subject_id", subjectId)
         .order("created_at", { ascending: false });
       if (gigId) q = q.eq("gig_id", gigId);
       if (jobId) q = q.eq("job_id", jobId);
       const { data } = await q;
-      return data ?? [];
+      const rows = data ?? [];
+      const ids = Array.from(new Set(rows.map((r) => r.author_id)));
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles").select("id,display_name,avatar_url").in("id", ids);
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return rows.map((r) => ({ ...r, author: byId.get(r.author_id) ?? null }));
     },
   });
 
@@ -98,10 +104,10 @@ export function Reviews({ subjectId, gigId, jobId, title = "Reviews" }: ReviewsP
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-semibold">
-                  {(r.profiles?.display_name?.[0] ?? "?").toUpperCase()}
+                  {(r.author?.display_name?.[0] ?? "?").toUpperCase()}
                 </div>
                 <div>
-                  <div className="text-sm font-medium">{r.profiles?.display_name ?? "User"}</div>
+                  <div className="text-sm font-medium">{r.author?.display_name ?? "User"}</div>
                   <div className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</div>
                 </div>
               </div>
