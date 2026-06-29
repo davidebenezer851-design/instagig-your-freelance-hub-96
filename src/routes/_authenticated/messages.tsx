@@ -102,6 +102,10 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [body, setBody] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [otherTyping, setOtherTyping] = useState(false);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSentTyping = useRef<number>(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -113,13 +117,28 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${convId}` }, (payload) => {
         setMessages((prev) => [...prev, payload.new as Message]);
       })
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const fromId = (payload.payload as { user_id?: string })?.user_id;
+        if (!fromId || fromId === user?.id) return;
+        setOtherTyping(true);
+        if (typingTimer.current) clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => setOtherTyping(false), 2500);
+      })
       .subscribe();
+    channelRef.current = channel;
     return () => { active = false; supabase.removeChannel(channel); };
-  }, [convId]);
+  }, [convId, user?.id]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, otherTyping]);
+
+  function broadcastTyping() {
+    const now = Date.now();
+    if (now - lastSentTyping.current < 1200) return;
+    lastSentTyping.current = now;
+    channelRef.current?.send({ type: "broadcast", event: "typing", payload: { user_id: user?.id } });
+  }
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -159,6 +178,15 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
             );
           })}
           {messages.length === 0 && <div className="py-12 text-center text-xs text-muted-foreground">Say hi 👋</div>}
+          {otherTyping && (
+            <div className="flex justify-start">
+              <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-card px-3 py-2 shadow-sm">
+                <span className="typing-dot" />
+                <span className="typing-dot" style={{ animationDelay: "150ms" }} />
+                <span className="typing-dot" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -195,7 +223,8 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
           <label><Camera className="h-5 w-5" /><input type="file" accept="image/*" capture="environment" className="hidden" /></label>
         </Button>
         <input
-          value={body} onChange={(e) => setBody(e.target.value)}
+          value={body}
+          onChange={(e) => { setBody(e.target.value); broadcastTyping(); }}
           placeholder="Type a message"
           className="flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
         />

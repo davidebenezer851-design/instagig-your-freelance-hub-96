@@ -17,7 +17,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIdRouteImport } from './routes/profile.$id'
 import { Route as JobsIdRouteImport } from './routes/jobs.$id'
 import { Route as GigsIdRouteImport } from './routes/gigs.$id'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/saved'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPostJobRouteImport } from './routes/_authenticated/post-job'
 import { Route as AuthenticatedPostGigRouteImport } from './routes/_authenticated/post-gig'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
@@ -66,9 +68,19 @@ const GigsIdRoute = GigsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => GigsRoute,
 } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSavedRoute = AuthenticatedSavedRouteImport.update({
   id: '/saved',
   path: '/saved',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPostJobRoute = AuthenticatedPostJobRouteImport.update({
@@ -125,7 +137,9 @@ export interface FileRoutesByFullPath {
   '/payments': typeof AuthenticatedPaymentsRoute
   '/post-gig': typeof AuthenticatedPostGigRoute
   '/post-job': typeof AuthenticatedPostJobRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
@@ -143,7 +157,9 @@ export interface FileRoutesByTo {
   '/payments': typeof AuthenticatedPaymentsRoute
   '/post-gig': typeof AuthenticatedPostGigRoute
   '/post-job': typeof AuthenticatedPostJobRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
@@ -163,7 +179,9 @@ export interface FileRoutesById {
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/post-gig': typeof AuthenticatedPostGigRoute
   '/_authenticated/post-job': typeof AuthenticatedPostJobRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/saved': typeof AuthenticatedSavedRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
@@ -183,7 +201,9 @@ export interface FileRouteTypes {
     | '/payments'
     | '/post-gig'
     | '/post-job'
+    | '/profile'
     | '/saved'
+    | '/settings'
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
@@ -201,7 +221,9 @@ export interface FileRouteTypes {
     | '/payments'
     | '/post-gig'
     | '/post-job'
+    | '/profile'
     | '/saved'
+    | '/settings'
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
@@ -220,7 +242,9 @@ export interface FileRouteTypes {
     | '/_authenticated/payments'
     | '/_authenticated/post-gig'
     | '/_authenticated/post-job'
+    | '/_authenticated/profile'
     | '/_authenticated/saved'
+    | '/_authenticated/settings'
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
@@ -293,11 +317,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GigsIdRouteImport
       parentRoute: typeof GigsRoute
     }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/saved': {
       id: '/_authenticated/saved'
       path: '/saved'
       fullPath: '/saved'
       preLoaderRoute: typeof AuthenticatedSavedRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/post-job': {
@@ -368,7 +406,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedPostGigRoute: typeof AuthenticatedPostGigRoute
   AuthenticatedPostJobRoute: typeof AuthenticatedPostJobRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -380,7 +420,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedPostGigRoute: AuthenticatedPostGigRoute,
   AuthenticatedPostJobRoute: AuthenticatedPostJobRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
