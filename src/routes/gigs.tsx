@@ -58,7 +58,7 @@ function BrowseGigs() {
           <p className="mt-2 text-muted-foreground">Talent ready to start today.</p>
 
           <form
-            onSubmit={(e) => { e.preventDefault(); navigate({ search: (s) => ({ ...s, q: q || undefined }) }); }}
+            onSubmit={(e) => { e.preventDefault(); navigate({ search: { ...search, q: q || undefined } }); }}
             className="mt-6 flex max-w-2xl items-center gap-2 rounded-full border border-border bg-background p-1.5"
           >
             <Search className="ml-3 h-4 w-4 text-muted-foreground" />
@@ -68,13 +68,13 @@ function BrowseGigs() {
 
           <div className="mt-5 flex flex-wrap gap-2">
             <button
-              onClick={() => navigate({ search: (s) => ({ ...s, category: undefined }) })}
+              onClick={() => navigate({ search: { ...search, category: undefined } })}
               className={`rounded-full border px-3 py-1 text-xs ${!search.category ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
             >All</button>
             {cats?.map((c) => (
               <button
                 key={c.id}
-                onClick={() => navigate({ search: (s) => ({ ...s, category: c.slug }) })}
+                onClick={() => navigate({ search: { ...search, category: c.slug } })}
                 className={`rounded-full border px-3 py-1 text-xs ${search.category === c.slug ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
               >{c.name}</button>
             ))}
