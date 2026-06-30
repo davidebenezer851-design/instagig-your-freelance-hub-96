@@ -24,6 +24,7 @@ const tiers = [
     perks: ["Up to 3 active gigs", "Real-time messaging", "Basic invoicing", "5% service fee on payouts"],
     cta: "Start free",
     to: "/auth" as const,
+    search: undefined as Record<string, string> | undefined,
     featured: false,
   },
   {
@@ -32,7 +33,8 @@ const tiers = [
     blurb: "Stand out. Get paid faster.",
     perks: ["Unlimited gigs & proposals", "Boosted search visibility", "Branded invoices + auto reminders", "3% service fee", "Priority support"],
     cta: "Go Pro",
-    to: "/auth" as const,
+    to: "/payments" as const,
+    search: { plan: "pro" },
     featured: true,
   },
   {
@@ -41,10 +43,12 @@ const tiers = [
     blurb: "For agencies & hiring teams.",
     perks: ["Team workspaces", "Hire & escrow at scale", "Custom invoice templates", "Dedicated account manager", "API access"],
     cta: "Contact sales",
-    to: "/auth" as const,
+    to: "/payments" as const,
+    search: { plan: "business" },
     featured: false,
   },
 ];
+
 
 function PricingPage() {
   return (
@@ -88,11 +92,12 @@ function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link to={t.to} className="mt-7 block">
+              <Link to={t.to} search={t.search as never} className="mt-7 block">
                 <Button className="w-full font-semibold" variant={t.featured ? "default" : "secondary"}>
                   {t.cta}
                 </Button>
               </Link>
+
             </div>
           ))}
         </div>

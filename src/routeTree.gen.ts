@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as InvoicingRouteImport } from './routes/invoicing'
@@ -33,6 +34,11 @@ import { Route as AuthenticatedFreelancerRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientRouteImport } from './routes/_authenticated/client'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/invoicing': typeof InvoicingRoute
   '/jobs': typeof JobsRouteWithChildren
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/invoicing': typeof InvoicingRoute
   '/jobs': typeof JobsRouteWithChildren
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/invoicing': typeof InvoicingRoute
   '/jobs': typeof JobsRouteWithChildren
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/client': typeof AuthenticatedClientRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/freelancer': typeof AuthenticatedFreelancerRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/invoicing'
     | '/jobs'
     | '/pricing'
+    | '/reset-password'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/invoicing'
     | '/jobs'
     | '/pricing'
+    | '/reset-password'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '/invoicing'
     | '/jobs'
     | '/pricing'
+    | '/reset-password'
     | '/_authenticated/client'
     | '/_authenticated/dashboard'
     | '/_authenticated/freelancer'
@@ -306,11 +318,19 @@ export interface RootRouteChildren {
   InvoicingRoute: typeof InvoicingRoute
   JobsRoute: typeof JobsRouteWithChildren
   PricingRoute: typeof PricingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ProfileIdRoute: typeof ProfileIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -538,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvoicingRoute: InvoicingRoute,
   JobsRoute: JobsRouteWithChildren,
   PricingRoute: PricingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ProfileIdRoute: ProfileIdRoute,
 }
 export const routeTree = rootRouteImport
