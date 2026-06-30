@@ -257,7 +257,7 @@ function WalletPage() {
         } catch (e) { toast.error((e as Error).message); }
       }} />
 
-      <ConnectModal open={connectOpen} onOpenChange={(o) => !o && setConnectOpen(null)} brand={connectOpen} onConfirm={(label, sub) => {
+      <ConnectModal open={!!connectOpen} onOpenChange={(o) => !o && setConnectOpen(null)} brand={connectOpen} onConfirm={(label, sub) => {
         if (!connectOpen) return;
         saveMethods([...methods, { id: crypto.randomUUID(), brand: connectOpen, label, sub }]);
         toast.success(`${label} connected`);
