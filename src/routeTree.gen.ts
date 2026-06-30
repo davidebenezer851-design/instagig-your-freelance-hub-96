@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as GigsRouteImport } from './routes/gigs'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -30,6 +31,11 @@ import { Route as AuthenticatedFreelancerRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientRouteImport } from './routes/_authenticated/client'
 
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JobsRoute = JobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/gigs': typeof GigsRouteWithChildren
   '/jobs': typeof JobsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/gigs': typeof GigsRouteWithChildren
   '/jobs': typeof JobsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/gigs': typeof GigsRouteWithChildren
   '/jobs': typeof JobsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/_authenticated/client': typeof AuthenticatedClientRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/freelancer': typeof AuthenticatedFreelancerRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/gigs'
     | '/jobs'
+    | '/pricing'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/gigs'
     | '/jobs'
+    | '/pricing'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/gigs'
     | '/jobs'
+    | '/pricing'
     | '/_authenticated/client'
     | '/_authenticated/dashboard'
     | '/_authenticated/freelancer'
@@ -268,11 +280,19 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   GigsRoute: typeof GigsRouteWithChildren
   JobsRoute: typeof JobsRouteWithChildren
+  PricingRoute: typeof PricingRoute
   ProfileIdRoute: typeof ProfileIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jobs': {
       id: '/jobs'
       path: '/jobs'
@@ -475,6 +495,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   GigsRoute: GigsRouteWithChildren,
   JobsRoute: JobsRouteWithChildren,
+  PricingRoute: PricingRoute,
   ProfileIdRoute: ProfileIdRoute,
 }
 export const routeTree = rootRouteImport
