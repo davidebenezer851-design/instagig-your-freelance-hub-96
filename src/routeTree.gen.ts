@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as JobsRouteImport } from './routes/jobs'
+import { Route as InvoicingRouteImport } from './routes/invoicing'
 import { Route as GigsRouteImport } from './routes/gigs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -30,9 +32,19 @@ import { Route as AuthenticatedFreelancerRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientRouteImport } from './routes/_authenticated/client'
 
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JobsRoute = JobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvoicingRoute = InvoicingRouteImport.update({
+  id: '/invoicing',
+  path: '/invoicing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GigsRoute = GigsRouteImport.update({
@@ -134,7 +146,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/gigs': typeof GigsRouteWithChildren
+  '/invoicing': typeof InvoicingRoute
   '/jobs': typeof JobsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -155,7 +169,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/gigs': typeof GigsRouteWithChildren
+  '/invoicing': typeof InvoicingRoute
   '/jobs': typeof JobsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -178,7 +194,9 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/gigs': typeof GigsRouteWithChildren
+  '/invoicing': typeof InvoicingRoute
   '/jobs': typeof JobsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/_authenticated/client': typeof AuthenticatedClientRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/freelancer': typeof AuthenticatedFreelancerRoute
@@ -201,7 +219,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/gigs'
+    | '/invoicing'
     | '/jobs'
+    | '/pricing'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -222,7 +242,9 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/gigs'
+    | '/invoicing'
     | '/jobs'
+    | '/pricing'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -244,7 +266,9 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/gigs'
+    | '/invoicing'
     | '/jobs'
+    | '/pricing'
     | '/_authenticated/client'
     | '/_authenticated/dashboard'
     | '/_authenticated/freelancer'
@@ -267,17 +291,33 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   GigsRoute: typeof GigsRouteWithChildren
+  InvoicingRoute: typeof InvoicingRoute
   JobsRoute: typeof JobsRouteWithChildren
+  PricingRoute: typeof PricingRoute
   ProfileIdRoute: typeof ProfileIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jobs': {
       id: '/jobs'
       path: '/jobs'
       fullPath: '/jobs'
       preLoaderRoute: typeof JobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoicing': {
+      id: '/invoicing'
+      path: '/invoicing'
+      fullPath: '/invoicing'
+      preLoaderRoute: typeof InvoicingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gigs': {
@@ -474,7 +514,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   GigsRoute: GigsRouteWithChildren,
+  InvoicingRoute: InvoicingRoute,
   JobsRoute: JobsRouteWithChildren,
+  PricingRoute: PricingRoute,
   ProfileIdRoute: ProfileIdRoute,
 }
 export const routeTree = rootRouteImport

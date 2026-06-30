@@ -59,6 +59,12 @@ export function Navbar() {
           <Link to="/jobs" className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&.active]:text-primary" activeProps={{ className: "active" }}>
             Find Jobs
           </Link>
+          <Link to="/pricing" className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&.active]:text-primary" activeProps={{ className: "active" }}>
+            Pricing
+          </Link>
+          <Link to="/invoicing" className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground [&.active]:text-primary" activeProps={{ className: "active" }}>
+            Invoicing
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2">

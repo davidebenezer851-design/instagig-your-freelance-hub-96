@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Briefcase, MessageSquare, Search, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Briefcase, FileText, MessageSquare, Search, Sparkles, Zap } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -108,19 +108,20 @@ function LandingPage() {
       <section className="border-t border-border/60 bg-card/40" data-fade>
         <div className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <h2 className="text-center font-display text-3xl font-bold">How InstaGIG works</h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Briefcase, t: "Post or browse", d: "Clients post jobs, freelancers list gigs. Find the perfect match in minutes." },
-              { icon: MessageSquare, t: "Chat in real time", d: "WhatsApp-style messaging with emojis, attachments, voice notes, and camera." },
-              { icon: Zap, t: "Get paid fast", d: "Secure escrow, instant payouts. No waiting for clients to pay." },
-            ].map(({ icon: Icon, t, d }) => (
-              <div key={t} className="rounded-2xl border border-border bg-card p-6">
+              { icon: Briefcase, t: "Post or browse", d: "Clients post jobs, freelancers list gigs. Find the perfect match in minutes.", to: "/gigs" as const },
+              { icon: MessageSquare, t: "Chat in real time", d: "WhatsApp-style messaging with emojis, attachments, voice notes, and camera.", to: "/messages" as const },
+              { icon: Zap, t: "Get paid fast", d: "Secure escrow, instant payouts. No waiting for clients to pay.", to: "/payments" as const },
+              { icon: FileText, t: "Invoices", d: "Send branded invoices, track paid/overdue, and bill clients in seconds.", to: "/invoicing" as const },
+            ].map(({ icon: Icon, t, d, to }) => (
+              <Link key={t} to={to} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary hover:bg-primary/5">
                 <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground">
                   <Icon className="h-6 w-6" />
                 </div>
                 <h3 className="mt-4 font-display text-xl font-semibold">{t}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{d}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
