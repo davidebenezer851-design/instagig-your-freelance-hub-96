@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useScrollFade } from "@/hooks/useScrollFade";
-import heroVideo from "@/assets/hero.mp4.asset.json";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -103,35 +103,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Showreel */}
-      <section className="border-y border-border/60 bg-card/40" data-fade>
-        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-16 md:grid-cols-2 md:px-6">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
-              <Zap className="h-3 w-3" /> Live on InstaGIG
-            </div>
-            <h2 className="font-display text-3xl font-bold md:text-4xl">See the marketplace in motion.</h2>
-            <p className="mt-3 text-muted-foreground">
-              Real freelancers, real clients, real deals — closed in minutes, not weeks. This is what InstaGIG looks like in the wild.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/gigs"><Button className="font-semibold">Browse gigs</Button></Link>
-              <Link to="/jobs"><Button variant="secondary">Find jobs</Button></Link>
-            </div>
-          </div>
-          <div className="relative overflow-hidden rounded-3xl border border-primary/30 shadow-[0_30px_80px_-30px_color-mix(in_oklab,var(--primary)_40%,transparent)]">
-            <video
-              src={heroVideo.url}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="aspect-video h-full w-full object-cover"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-background/40 via-transparent to-primary/10" />
-          </div>
-        </div>
-      </section>
 
       {/* How it works */}
       <section className="border-t border-border/60 bg-card/40" data-fade>
