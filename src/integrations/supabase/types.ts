@@ -508,6 +508,7 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
+          email: string | null
           headline: string | null
           hourly_rate: number | null
           id: string
@@ -525,6 +526,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
           headline?: string | null
           hourly_rate?: number | null
           id: string
@@ -542,6 +544,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
           headline?: string | null
           hourly_rate?: number | null
           id?: string

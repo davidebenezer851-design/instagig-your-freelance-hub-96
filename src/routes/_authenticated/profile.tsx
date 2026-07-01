@@ -58,10 +58,13 @@ function ProfileEdit() {
       const path = `${user.id}/avatar/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage.from("post-attachments").upload(path, file, { contentType: file.type, upsert: true });
       if (error) throw error;
-      const { data: pub } = supabase.storage.from("post-attachments").getPublicUrl(path);
-      const url = pub?.publicUrl ?? null;
+      // Bucket is private in this workspace — use a long-lived signed URL so the image loads for everyone.
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("post-attachments")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+      if (signErr) throw signErr;
+      const url = signed?.signedUrl ?? null;
       setAvatarUrl(url);
-      // Persist avatar immediately so it reflects everywhere even without hitting Save
       const { error: upErr } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
       if (upErr) throw upErr;
       qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
