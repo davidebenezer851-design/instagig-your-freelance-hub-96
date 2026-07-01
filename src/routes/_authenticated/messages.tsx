@@ -91,8 +91,10 @@ function MessagesPage() {
 
   async function hideConversation(c: Conv) {
     if (!user) return;
-    const column = c.user_a === user.id ? "hidden_by_a_at" : "hidden_by_b_at";
-    const { error } = await supabase.from("conversations").update({ [column]: new Date().toISOString() }).eq("id", c.id);
+    const patch = c.user_a === user.id
+      ? { hidden_by_a_at: new Date().toISOString() }
+      : { hidden_by_b_at: new Date().toISOString() };
+    const { error } = await supabase.from("conversations").update(patch).eq("id", c.id);
     if (error) { toast.error(error.message); return; }
     if (activeId === c.id) navigate({ search: {} });
     qc.invalidateQueries({ queryKey: ["conversations", user.id] });
@@ -143,26 +145,74 @@ function MessagesPage() {
   );
 }
 
+function ConversationListItem({ conversation, active, onOpen, onDelete }: { conversation: Conv; active: boolean; onOpen: () => void; onDelete: () => void }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const name = conversation.other?.display_name || conversation.other?.email?.split("@")[0] || "Unknown";
+
+  function startLongPress() {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = setTimeout(() => setConfirmOpen(true), 550);
+  }
+  function stopLongPress() {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+  }
+
+  return (
+    <li>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <button
+            onClick={onOpen}
+            onTouchStart={startLongPress}
+            onTouchEnd={stopLongPress}
+            onTouchMove={stopLongPress}
+            className={`grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-3 text-left transition hover:bg-secondary ${active ? "bg-secondary" : ""}`}
+          >
+            <UserAvatar userId={conversation.other?.id} name={name} avatarUrl={conversation.other?.avatar_url} size={40} />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium">{name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true })}</span>
+            </span>
+            <span className="hidden h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive md:grid" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}>
+              <Trash2 className="h-4 w-4" />
+            </span>
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onSelect={() => setConfirmOpen(true)} className="text-destructive focus:text-destructive">
+            <Trash2 className="mr-2 h-4 w-4" /> Remove chat
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this chat?</AlertDialogTitle>
+            <AlertDialogDescription>This removes the conversation from your Messages list. It won't delete it for the other person.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={onDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </li>
+  );
+}
+
 function NewChatByEmail({ onOpen }: { onOpen: (convId: string) => void }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
+  const [selected, setSelected] = useState<UserSearchResult | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function start() {
-    if (!user || !email.trim()) return;
+    if (!user || !selected) return;
     setBusy(true);
     try {
-      const q = email.trim().toLowerCase();
-      // Look up recipient by email in profiles (falls back to display_name match).
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("id,display_name")
-        .or(`email.eq.${q},display_name.ilike.${q}`)
-        .maybeSingle();
-      if (!prof) { toast.error("No user found with that email"); return; }
-      if (prof.id === user.id) { toast.error("That's you 🙂"); return; }
-      const [a, b] = [user.id, prof.id].sort();
+      if (selected.id === user.id) { toast.error("That's you 🙂"); return; }
+      const [a, b] = [user.id, selected.id].sort();
       const { data: existing } = await supabase
         .from("conversations")
         .select("id")
@@ -171,12 +221,12 @@ function NewChatByEmail({ onOpen }: { onOpen: (convId: string) => void }) {
       if (!convId) {
         const { data: created, error } = await supabase
           .from("conversations")
-          .insert({ user_a: a, user_b: b })
+          .insert({ user_a: a, user_b: b, hidden_by_a_at: null, hidden_by_b_at: null })
           .select("id").single();
         if (error) throw error;
         convId = created.id;
       }
-      setOpen(false); setEmail("");
+      setOpen(false); setSelected(null);
       onOpen(convId!);
     } catch (e) {
       toast.error((e as Error).message);
@@ -191,16 +241,10 @@ function NewChatByEmail({ onOpen }: { onOpen: (convId: string) => void }) {
       <PopoverContent align="end" className="w-72">
         <div className="space-y-2">
           <div className="text-sm font-semibold">Start a new chat</div>
-          <p className="text-xs text-muted-foreground">Enter the email or name of the person you want to message.</p>
-          <input
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-            placeholder="name@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") start(); }}
-          />
-          <Button onClick={start} disabled={busy || !email.trim()} className="w-full" size="sm">
-            {busy ? "Searching…" : "Start chat"}
+          <p className="text-xs text-muted-foreground">Search by email, then choose the person from the dropdown.</p>
+          <UserEmailSearch excludeUserId={user?.id} selected={selected} onSelect={setSelected} />
+          <Button onClick={start} disabled={busy || !selected} className="w-full" size="sm">
+            {busy ? "Opening…" : "Start chat"}
           </Button>
         </div>
       </PopoverContent>
