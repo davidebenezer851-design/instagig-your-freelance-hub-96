@@ -66,7 +66,7 @@ function ProfileEdit() {
       if (signErr) throw signErr;
       const url = signed?.signedUrl ?? null;
       setAvatarUrl(url);
-      const { data: saved, error: upErr } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id).select("*").single();
+      const { data: saved, error: upErr } = await supabase.from("profiles").upsert({ id: user.id, email: user.email, avatar_url: url }, { onConflict: "id" }).select("*").single();
       if (upErr) throw upErr;
       if (saved) qc.setQueryData(["my-profile", user.id], saved);
       qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
@@ -83,13 +83,15 @@ function ProfileEdit() {
   async function save() {
     if (!user) return;
     setSaving(true);
-    const { data: saved, error } = await supabase.from("profiles").update({
+    const { data: saved, error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      email: user.email,
       display_name: displayName,
       headline, bio, location,
       hourly_rate: hourlyRate === "" ? null : Number(hourlyRate),
       skills,
       avatar_url: avatarUrl,
-    }).eq("id", user.id).select("*").single();
+    }, { onConflict: "id" }).select("*").single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     if (saved) qc.setQueryData(["my-profile", user.id], saved);

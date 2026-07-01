@@ -37,7 +37,6 @@ function AccountsPage() {
   }
 
   const email = user?.email ?? "";
-  const initial = email[0]?.toUpperCase() ?? "?";
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,7 +106,7 @@ function AccountsPage() {
             onClick={signOut}
             className="flex w-full items-center gap-3 border-t border-border px-5 py-4 text-left text-sm hover:bg-secondary/50"
           >
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-secondary font-semibold">{initial}</div>
+            <UserAvatar userId={user?.id} size={36} />
             <div className="flex-1">
               <div className="font-medium">Sign in with a different account</div>
               <div className="text-xs text-muted-foreground">Google, email & password, or magic link</div>
