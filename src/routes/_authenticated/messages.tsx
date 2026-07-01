@@ -6,12 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Camera, Check, CheckCheck, File as FileIcon, Image as ImageIcon, Mic, Paperclip, Reply, Send, Smile, X, Loader2, Download } from "lucide-react";
+import { Camera, Check, CheckCheck, File as FileIcon, Image as ImageIcon, Mic, Paperclip, Reply, Send, Smile, X, Loader2, Download, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ImageEditor } from "@/components/ImageEditor";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const searchSchema = z.object({ c: z.string().uuid().optional() });
