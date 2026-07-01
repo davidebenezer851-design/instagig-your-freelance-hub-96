@@ -682,7 +682,7 @@ function SwipeableMessage({ children, onReply, onDelete, onSelect, mine, selecte
     }
     if (decided.current !== "h") return;
     if (longPressRef.current) clearTimeout(longPressRef.current);
-    // Swipe right for both to reply (WhatsApp behavior)
+    // Swipe right for both sender and receiver to reply.
     const clamped = Math.max(0, Math.min(80, ddx));
     setDx(clamped);
   }

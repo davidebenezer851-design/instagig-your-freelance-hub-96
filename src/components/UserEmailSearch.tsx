@@ -24,20 +24,21 @@ type Props = {
 export function UserEmailSearch({ excludeUserId, placeholder = "Search by email", selected, className, onSelect }: Props) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
-  const cleaned = useMemo(() => query.trim().replace(/[,()]/g, ""), [query]);
+  const cleaned = useMemo(() => query.trim().replace(/[%(),]/g, ""), [query]);
+  const searchTerm = cleaned.replace(/[.*]/g, " ").trim();
 
   useEffect(() => {
     if (selected) setQuery(selected.email ?? selected.display_name ?? selected.username ?? "");
   }, [selected]);
 
   const { data: results = [], isFetching } = useQuery({
-    queryKey: ["user-email-search", cleaned, excludeUserId],
-    enabled: cleaned.length >= 2,
+    queryKey: ["user-email-search", searchTerm, excludeUserId],
+    enabled: searchTerm.length >= 2,
     queryFn: async () => {
       let request = supabase
         .from("profiles")
         .select("id,display_name,username,email,avatar_url")
-        .or(`email.ilike.*${cleaned}*,display_name.ilike.*${cleaned}*,username.ilike.*${cleaned}*`)
+        .or(`email.ilike.*${searchTerm}*,display_name.ilike.*${searchTerm}*,username.ilike.*${searchTerm}*`)
         .limit(6);
       if (excludeUserId) request = request.neq("id", excludeUserId);
       const { data, error } = await request;
@@ -46,7 +47,7 @@ export function UserEmailSearch({ excludeUserId, placeholder = "Search by email"
     },
   });
 
-  const showMenu = focused && cleaned.length >= 2;
+  const showMenu = focused && searchTerm.length >= 2;
 
   return (
     <div className={cn("relative", className)}>
