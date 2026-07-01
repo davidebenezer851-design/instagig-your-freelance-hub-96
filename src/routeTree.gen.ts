@@ -32,6 +32,7 @@ import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFreelancerRouteImport } from './routes/_authenticated/freelancer'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientRouteImport } from './routes/_authenticated/client'
+import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -147,6 +148,11 @@ const AuthenticatedClientRoute = AuthenticatedClientRouteImport.update({
   path: '/client',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/jobs': typeof JobsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/accounts': typeof AuthenticatedAccountsRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/jobs': typeof JobsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/accounts': typeof AuthenticatedAccountsRoute
   '/client': typeof AuthenticatedClientRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/freelancer': typeof AuthenticatedFreelancerRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/jobs': typeof JobsRouteWithChildren
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
   '/_authenticated/client': typeof AuthenticatedClientRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/freelancer': typeof AuthenticatedFreelancerRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/pricing'
     | '/reset-password'
+    | '/accounts'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/pricing'
     | '/reset-password'
+    | '/accounts'
     | '/client'
     | '/dashboard'
     | '/freelancer'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/pricing'
     | '/reset-password'
+    | '/_authenticated/accounts'
     | '/_authenticated/client'
     | '/_authenticated/dashboard'
     | '/_authenticated/freelancer'
@@ -473,10 +485,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/accounts': {
+      id: '/_authenticated/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AuthenticatedAccountsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
   AuthenticatedClientRoute: typeof AuthenticatedClientRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFreelancerRoute: typeof AuthenticatedFreelancerRoute
@@ -492,6 +512,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
   AuthenticatedClientRoute: AuthenticatedClientRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFreelancerRoute: AuthenticatedFreelancerRoute,

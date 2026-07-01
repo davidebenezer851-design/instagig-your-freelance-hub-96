@@ -96,7 +96,19 @@ export function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-64">
+                  <div className="px-2 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Account</div>
+                    <Link to="/accounts" className="mt-1 flex items-center gap-2 rounded-md p-1.5 hover:bg-secondary">
+                      <UserAvatar userId={user.id} size={32} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium">{user.email}</div>
+                        <div className="text-[11px] text-muted-foreground">Manage accounts</div>
+                      </div>
+                      <span className="text-[10px] text-primary">Switch</span>
+                    </Link>
+                  </div>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild><Link to="/dashboard"><Briefcase className="mr-2 h-4 w-4" />Dashboard</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/profile"><UserIcon className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link to="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link></DropdownMenuItem>
