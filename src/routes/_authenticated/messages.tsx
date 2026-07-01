@@ -73,7 +73,10 @@ function MessagesPage() {
       <div className="mx-auto flex w-full max-w-6xl flex-1 overflow-hidden border-x border-border md:my-4 md:rounded-2xl md:border" style={{ minHeight: 0 }}>
         <aside className={`w-full border-r border-border md:w-80 ${activeId ? "hidden md:block" : "block"}`}>
           <div className="border-b border-border p-4">
-            <h2 className="font-display text-lg font-semibold">Chats</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold">Chats</h2>
+              <NewChatByEmail onOpen={(id) => navigate({ search: { c: id } })} />
+            </div>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: "calc(100dvh - 8rem)" }}>
             {conversations && conversations.length > 0 ? (
