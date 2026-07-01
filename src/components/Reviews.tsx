@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { UserAvatar } from "@/components/UserAvatar";
 
 type ReviewsProps = {
   subjectId: string;
@@ -103,9 +104,7 @@ export function Reviews({ subjectId, gigId, jobId, title = "Reviews" }: ReviewsP
           <div key={r.id} className="rounded-xl border border-border bg-card/60 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-semibold">
-                  {(r.author?.display_name?.[0] ?? "?").toUpperCase()}
-                </div>
+                <UserAvatar userId={r.author_id} name={r.author?.display_name} avatarUrl={r.author?.avatar_url} size={32} />
                 <div>
                   <div className="text-sm font-medium">{r.author?.display_name ?? "User"}</div>
                   <div className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</div>

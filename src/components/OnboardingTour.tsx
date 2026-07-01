@@ -7,7 +7,7 @@ type Step = { selector: string; title: string; body: string; placement?: "top" |
 
 const STEPS: Step[] = [
   { selector: '[data-tour="browse"]',   title: "Browse Gigs & Jobs",   body: "Tap here to explore services from freelancers around the world." },
-  { selector: '[data-tour="messages"]', title: "Real-time chat",       body: "Open Messages to chat — swipe right on a bubble to reply, just like WhatsApp." },
+  { selector: '[data-tour="messages"]', title: "Seamless messaging",   body: "Open Messages for instant chats, quick replies, and clean file sharing." },
   { selector: '[data-tour="wallet"]',   title: "Your Wallet",          body: "Top up, pay for boosts and gigs, and watch the chip pulse when your balance changes." },
   { selector: '[data-tour="profile"]',  title: "Your account",         body: "Profile, settings, posting a gig/job — everything lives in this menu.", placement: "top" },
 ];
@@ -25,8 +25,15 @@ export function OnboardingTour() {
     if (loading || !user || typeof window === "undefined") return;
     const key = `instagig:tour:${user.id}`;
     if (localStorage.getItem(key)) return;
-    const t = setTimeout(() => setActive(true), 900);
-    return () => clearTimeout(t);
+    const waitForReady = window.setInterval(() => {
+      const firstTarget = document.querySelector(STEPS[0].selector);
+      const loaderGone = !document.querySelector('[data-page-loader="true"]');
+      if (!firstTarget || !loaderGone || document.readyState === "loading") return;
+      window.clearInterval(waitForReady);
+      window.setTimeout(() => setActive(true), 450);
+    }, 200);
+    const timeout = window.setTimeout(() => window.clearInterval(waitForReady), 8000);
+    return () => { window.clearInterval(waitForReady); window.clearTimeout(timeout); };
   }, [user, loading]);
 
   const step = STEPS[i];

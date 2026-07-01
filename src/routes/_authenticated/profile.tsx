@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,10 +66,12 @@ function ProfileEdit() {
       if (signErr) throw signErr;
       const url = signed?.signedUrl ?? null;
       setAvatarUrl(url);
-      const { error: upErr } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+      const { data: saved, error: upErr } = await supabase.from("profiles").upsert({ id: user.id, email: user.email, avatar_url: url }, { onConflict: "id" }).select("*").single();
       if (upErr) throw upErr;
+      if (saved) qc.setQueryData(["my-profile", user.id], saved);
       qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
       qc.invalidateQueries({ queryKey: ["avatar-profile", user.id] });
+      window.dispatchEvent(new CustomEvent("instagig:avatar-updated", { detail: { userId: user.id, avatarUrl: url } }));
       toast.success("Profile photo updated");
     } catch (e) {
       toast.error((e as Error).message || "Upload failed");
@@ -80,17 +83,21 @@ function ProfileEdit() {
   async function save() {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({
+    const { data: saved, error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      email: user.email,
       display_name: displayName,
       headline, bio, location,
       hourly_rate: hourlyRate === "" ? null : Number(hourlyRate),
       skills,
       avatar_url: avatarUrl,
-    }).eq("id", user.id);
+    }, { onConflict: "id" }).select("*").single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    if (saved) qc.setQueryData(["my-profile", user.id], saved);
     qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
     qc.invalidateQueries({ queryKey: ["avatar-profile", user.id] });
+    window.dispatchEvent(new CustomEvent("instagig:avatar-updated", { detail: { userId: user.id, avatarUrl } }));
     toast.success("Profile updated");
   }
 
@@ -111,9 +118,7 @@ function ProfileEdit() {
         <div className="mt-8 rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-5">
             <div className="relative">
-              <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-secondary text-3xl font-bold text-primary">
-                {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : (displayName[0] ?? "?").toUpperCase()}
-              </div>
+              <UserAvatar userId={user?.id} name={displayName} avatarUrl={avatarUrl} size={96} className="text-primary" />
               <button
                 onClick={() => fileRef.current?.click()}
                 className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90"

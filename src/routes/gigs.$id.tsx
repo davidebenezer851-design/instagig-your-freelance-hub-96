@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Reviews } from "@/components/Reviews";
 import { isImage, type Attachment } from "@/components/FileUploader";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export const Route = createFileRoute("/gigs/$id")({
   component: GigDetail,
@@ -98,9 +99,7 @@ function GigDetail() {
           <h1 className="mt-2 font-display text-3xl font-bold md:text-4xl">{gig.title}</h1>
           <div className="mt-3 flex items-center gap-4 text-sm">
             <Link to="/profile/$id" params={{ id: gig.freelancer_id }} className="flex items-center gap-2 hover:text-primary">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-semibold">
-                {(gig.profiles?.display_name?.[0] ?? "?").toUpperCase()}
-              </div>
+              <UserAvatar userId={gig.freelancer_id} name={gig.profiles?.display_name} avatarUrl={gig.profiles?.avatar_url} size={32} />
               <span className="font-medium">{gig.profiles?.display_name ?? "Freelancer"}</span>
             </Link>
             <span className="flex items-center gap-1 text-xs"><Star className="h-3.5 w-3.5 fill-primary text-primary" /> {(gig.rating ?? 0).toFixed(1)} ({gig.reviews_count ?? 0})</span>

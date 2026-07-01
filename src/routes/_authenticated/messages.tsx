@@ -38,6 +38,7 @@ type Conv = {
   hidden_by_b_at?: string | null;
   other?: { id: string; display_name: string | null; avatar_url: string | null; email?: string | null } | null;
 };
+type ChatOther = { id: string; display_name: string | null; avatar_url: string | null; email?: string | null } | null;
 type Message = {
   id: string; sender_id: string; body: string | null; created_at: string;
   attachment_url: string | null; attachment_type: string | null; attachment_name: string | null; attachment_size: number | null;
@@ -102,9 +103,9 @@ function MessagesPage() {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-background">
+    <div className="flex h-[100dvh] w-full flex-col overflow-x-hidden bg-background">
       <Navbar />
-      <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 overflow-hidden border-x border-border md:my-4 md:rounded-2xl md:border" style={{ minHeight: 0 }}>
+      <div className="mx-auto flex w-full min-w-0 max-w-full flex-1 overflow-hidden border-x border-border md:my-4 md:max-w-6xl md:rounded-2xl md:border" style={{ minHeight: 0 }}>
         <aside className={`w-full min-w-0 border-r border-border md:w-80 ${activeId ? "hidden md:block" : "block"}`}>
           <div className="border-b border-border p-4">
             <div className="flex items-center justify-between">
@@ -133,7 +134,7 @@ function MessagesPage() {
           </div>
         </aside>
 
-        <section className={`min-w-0 flex-1 flex-col ${!activeId ? "hidden md:flex" : "flex"}`} style={{ minHeight: 0 }}>
+        <section className={`w-full min-w-0 flex-1 flex-col ${!activeId ? "hidden md:flex" : "flex"}`} style={{ minHeight: 0 }}>
           {activeId ? <ChatPanel convId={activeId} onBack={() => navigate({ search: {} })} /> : (
             <div className="grid flex-1 place-items-center p-8 text-center text-sm text-muted-foreground">
               Pick a conversation to start chatting.
@@ -148,11 +149,13 @@ function MessagesPage() {
 function ConversationListItem({ conversation, active, onOpen, onDelete }: { conversation: Conv; active: boolean; onOpen: () => void; onDelete: () => void }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressedRef = useRef(false);
   const name = conversation.other?.display_name || conversation.other?.email?.split("@")[0] || "Unknown";
 
   function startLongPress() {
     if (longPressRef.current) clearTimeout(longPressRef.current);
-    longPressRef.current = setTimeout(() => setConfirmOpen(true), 550);
+    longPressedRef.current = false;
+    longPressRef.current = setTimeout(() => { longPressedRef.current = true; setConfirmOpen(true); }, 550);
   }
   function stopLongPress() {
     if (longPressRef.current) clearTimeout(longPressRef.current);
@@ -163,7 +166,7 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <button
-            onClick={onOpen}
+            onClick={(e) => { if (longPressedRef.current) { e.preventDefault(); longPressedRef.current = false; return; } onOpen(); }}
             onTouchStart={startLongPress}
             onTouchEnd={stopLongPress}
             onTouchMove={stopLongPress}
@@ -225,6 +228,9 @@ function NewChatByEmail({ onOpen }: { onOpen: (convId: string) => void }) {
           .select("id").single();
         if (error) throw error;
         convId = created.id;
+      } else {
+        const patch = a === user.id ? { hidden_by_a_at: null } : { hidden_by_b_at: null };
+        await supabase.from("conversations").update(patch).eq("id", convId);
       }
       setOpen(false); setSelected(null);
       onOpen(convId!);
@@ -286,8 +292,8 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
       const { data: c } = await supabase.from("conversations").select("user_a,user_b").eq("id", convId).maybeSingle();
       if (!c) return null;
       const otherId = c.user_a === user!.id ? c.user_b : c.user_a;
-      const { data: p } = await supabase.from("profiles").select("id,display_name,avatar_url").eq("id", otherId).maybeSingle();
-      return p;
+      const { data: p } = await supabase.from("profiles").select("id,display_name,avatar_url,email").eq("id", otherId).maybeSingle();
+      return p as ChatOther;
     },
   });
 
@@ -296,7 +302,13 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
     supabase.from("messages")
       .select("id,sender_id,body,created_at,attachment_url,attachment_type,attachment_name,attachment_size,reply_to,read_at")
       .eq("conversation_id", convId).order("created_at").then(({ data }) => {
-        if (active) setMessages((data ?? []) as Message[]);
+        if (active) {
+          const loaded = (data ?? []) as Message[];
+          setMessages((prev) => {
+            const optimistic = prev.filter((m) => m.id.startsWith("temp-"));
+            return [...loaded, ...optimistic.filter((m) => !loaded.some((x) => x.id === m.id))];
+          });
+        }
       });
     const channel = supabase.channel(`chat:${convId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${convId}` }, (payload) => {
@@ -474,6 +486,8 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
     }
   }
 
+  const chatName = otherUser?.display_name || otherUser?.email?.split("@")[0] || "Conversation";
+
   return (
     <>
       <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-border p-3">
@@ -481,9 +495,9 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex min-w-0 items-center gap-3">
-          <UserAvatar userId={otherUser?.id} name={otherUser?.display_name} avatarUrl={otherUser?.avatar_url} size={36} />
+          <UserAvatar userId={otherUser?.id} name={chatName} avatarUrl={otherUser?.avatar_url} size={36} />
           <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">{otherUser?.display_name ?? "Loading…"}</div>
+          <div className="truncate text-sm font-semibold">{chatName}</div>
           <div className="text-xs text-muted-foreground">{otherTyping ? "typing…" : "Online"}</div>
           </div>
         </div>
@@ -527,7 +541,7 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
 
       <form
         onSubmit={(e) => { e.preventDefault(); send(); }}
-        className="border-t border-border bg-card p-2 sm:p-3"
+        className="w-full min-w-0 border-t border-border bg-card p-2 sm:p-3"
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       >
         {replyTo && (
@@ -548,7 +562,7 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
           </div>
         )}
 
-        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-2">
+        <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-border bg-background p-1.5 sm:p-2">
           {pending.length > 0 && (
             <div className="flex flex-wrap gap-2 border-b border-border pb-2">
               {pending.map((p) => (
@@ -574,10 +588,10 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
               ))}
             </div>
           )}
-          <div className="grid grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] items-end gap-1">
+          <div className={`grid items-end gap-1 ${isMobile ? "grid-cols-[auto_auto_auto_auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_auto_auto_minmax(0,1fr)_auto]"}`}>
             <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
               <PopoverTrigger asChild>
-                <Button type="button" size="icon" variant="ghost" aria-label="Emoji"><Smile className="h-5 w-5" /></Button>
+                <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" aria-label="Emoji"><Smile className="h-5 w-5" /></Button>
               </PopoverTrigger>
               <PopoverContent side="top" align="start" sideOffset={8} className="z-50 w-[min(360px,calc(100vw-24px))] p-0 border-border">
                 <EmojiPicker
@@ -588,14 +602,14 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
                 />
               </PopoverContent>
             </Popover>
-            <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} aria-label="Attach file">
+            <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => fileInputRef.current?.click()} aria-label="Attach file">
               <Paperclip className="h-5 w-5" />
             </Button>
-            <Button type="button" size="icon" variant="ghost" onClick={() => imgInputRef.current?.click()} aria-label="Image">
+            <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => imgInputRef.current?.click()} aria-label="Image">
               <ImageIcon className="h-5 w-5" />
             </Button>
             {isMobile && (
-              <Button type="button" size="icon" variant="ghost" onClick={() => camInputRef.current?.click()} aria-label="Camera">
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => camInputRef.current?.click()} aria-label="Camera">
                 <Camera className="h-5 w-5" />
               </Button>
             )}
@@ -608,14 +622,14 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !isMobile) { e.preventDefault(); send(); } }}
               placeholder="Type a message"
               rows={1}
-              className="max-h-32 min-h-[36px] min-w-0 resize-none bg-transparent px-1 py-2 text-sm outline-none sm:px-2"
+              className="max-h-32 min-h-9 min-w-0 resize-none bg-transparent px-1 py-2 text-sm outline-none sm:px-2"
             />
             {body.trim() || pending.length ? (
-              <Button type="submit" size="icon" className="rounded-full" disabled={sending}>
+              <Button type="submit" size="icon" className="h-9 w-9 shrink-0 rounded-full" disabled={sending}>
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             ) : (
-              <Button type="button" size="icon" variant={recording ? "default" : "ghost"} aria-label={recording ? "Stop recording" : "Record voice"} onClick={recording ? stopRecording : startRecording}>
+              <Button type="button" size="icon" className="h-9 w-9 shrink-0" variant={recording ? "default" : "ghost"} aria-label={recording ? "Stop recording" : "Record voice"} onClick={recording ? stopRecording : startRecording}>
                 <Mic className={`h-5 w-5 ${recording ? "animate-pulse" : ""}`} />
               </Button>
             )}
@@ -677,7 +691,7 @@ function SwipeableMessage({ children, onReply, onDelete, onSelect, mine, selecte
     }
     if (decided.current !== "h") return;
     if (longPressRef.current) clearTimeout(longPressRef.current);
-    // Swipe right for both to reply (WhatsApp behavior)
+    // Swipe right for both sender and receiver to reply.
     const clamped = Math.max(0, Math.min(80, ddx));
     setDx(clamped);
   }

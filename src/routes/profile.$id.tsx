@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { GigCard } from "@/components/GigCard";
 import { MapPin } from "lucide-react";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export const Route = createFileRoute("/profile/$id")({
   component: ProfilePage,
@@ -28,9 +29,7 @@ function ProfilePage() {
       <Navbar />
       <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
         <div className="flex flex-wrap items-center gap-6">
-          <div className="grid h-24 w-24 place-items-center rounded-full bg-primary text-primary-foreground font-display text-3xl font-bold">
-            {(profile.display_name?.[0] ?? "?").toUpperCase()}
-          </div>
+          <UserAvatar userId={profile.id} name={profile.display_name} avatarUrl={profile.avatar_url} size={96} className="ring-2 ring-primary/30" />
           <div>
             <h1 className="font-display text-3xl font-bold">{profile.display_name}</h1>
             {profile.headline && <p className="mt-1 text-muted-foreground">{profile.headline}</p>}

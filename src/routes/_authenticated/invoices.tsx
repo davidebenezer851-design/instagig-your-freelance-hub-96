@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   LayoutDashboard, FilePlus, Users, Settings, Plus, Trash2, Download,
@@ -16,6 +15,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { UserEmailSearch, type UserSearchResult } from "@/components/UserEmailSearch";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export const Route = createFileRoute("/_authenticated/invoices")({
   head: () => ({ meta: [{ title: "Invoices — InstaGIG" }] }),
@@ -207,6 +208,7 @@ function StatusBadge({ status }: { status: string }) {
 function Builder({ onSaved }: { onSaved: () => void }) {
   const { user } = useAuth();
   const [recipientId, setRecipientId] = useState("");
+  const [selectedRecipient, setSelectedRecipient] = useState<UserSearchResult | null>(null);
   const [title, setTitle] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [dueDate, setDueDate] = useState("");
@@ -222,7 +224,7 @@ function Builder({ onSaved }: { onSaved: () => void }) {
       const ids = new Set<string>();
       convos?.forEach((c) => { if (c.user_a !== user.id) ids.add(c.user_a); if (c.user_b !== user.id) ids.add(c.user_b); });
       if (ids.size === 0) return [];
-      const { data: profs } = await supabase.from("profiles").select("id,display_name").in("id", Array.from(ids));
+      const { data: profs } = await supabase.from("profiles").select("id,display_name,username,email,avatar_url").in("id", Array.from(ids));
       return profs ?? [];
     },
     enabled: !!user,
@@ -231,7 +233,7 @@ function Builder({ onSaved }: { onSaved: () => void }) {
   const subtotal = items.reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.rate) || 0), 0);
   const taxAmt = ((Number(tax) || 0) / 100) * subtotal;
   const total = subtotal + taxAmt;
-  const recipientName = contacts?.find((c) => c.id === recipientId)?.display_name ?? "—";
+  const recipientName = selectedRecipient?.display_name ?? contacts?.find((c) => c.id === recipientId)?.display_name ?? selectedRecipient?.email ?? "—";
 
   async function save(asDraft: boolean) {
     if (!user) return;
@@ -277,13 +279,21 @@ function Builder({ onSaved }: { onSaved: () => void }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label>Bill to</Label>
-              <Select value={recipientId} onValueChange={setRecipientId}>
-                <SelectTrigger><SelectValue placeholder="Choose a client…" /></SelectTrigger>
-                <SelectContent>
-                  {contacts?.map((c) => <SelectItem key={c.id} value={c.id}>{c.display_name ?? c.id.slice(0, 8)}</SelectItem>)}
-                  {(!contacts || contacts.length === 0) && <div className="px-3 py-2 text-xs text-muted-foreground">No clients yet — message someone first.</div>}
-                </SelectContent>
-              </Select>
+              <UserEmailSearch
+                excludeUserId={user?.id}
+                selected={selectedRecipient}
+                placeholder="Search client email…"
+                onSelect={(profile) => { setSelectedRecipient(profile); setRecipientId(profile.id); }}
+              />
+              {contacts && contacts.length > 0 && !selectedRecipient && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {contacts.slice(0, 4).map((c) => (
+                    <button key={c.id} type="button" onClick={() => { setSelectedRecipient(c as UserSearchResult); setRecipientId(c.id); }} className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary hover:text-foreground">
+                      {c.display_name ?? c.email ?? "Client"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="col-span-2 space-y-1.5">
               <Label>Title</Label>
@@ -399,6 +409,7 @@ function Clients() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ display_name: "", email: "", company: "" });
+  const [selectedClient, setSelectedClient] = useState<UserSearchResult | null>(null);
 
   const { data: clients } = useQuery({
     queryKey: ["billing-clients", user?.id],
@@ -407,7 +418,7 @@ function Clients() {
       const { data: convos } = await supabase.from("conversations").select("user_a,user_b").or(`user_a.eq.${user.id},user_b.eq.${user.id}`);
       const ids = new Set<string>();
       convos?.forEach((c) => { if (c.user_a !== user.id) ids.add(c.user_a); if (c.user_b !== user.id) ids.add(c.user_b); });
-      const profs = ids.size ? (await supabase.from("profiles").select("id,display_name,avatar_url,headline").in("id", Array.from(ids))).data ?? [] : [];
+      const profs = ids.size ? (await supabase.from("profiles").select("id,display_name,avatar_url,headline,email").in("id", Array.from(ids))).data ?? [] : [];
       const { data: invs } = await supabase.from("invoices").select("recipient_id,total").eq("sender_id", user.id);
       const totals: Record<string, number> = {};
       invs?.forEach((i) => { totals[i.recipient_id] = (totals[i.recipient_id] ?? 0) + Number(i.total); });
@@ -417,9 +428,12 @@ function Clients() {
   });
 
   async function addClient() {
-    if (!form.email.trim() || !form.display_name.trim()) return toast.error("Name and email required");
-    toast.success(`${form.display_name} added — message them to start invoicing`);
-    setOpen(false); setForm({ display_name: "", email: "", company: "" });
+    if (!selectedClient) return toast.error("Search and choose a registered user");
+    const [a, b] = [user!.id, selectedClient.id].sort();
+    const { data: existing } = await supabase.from("conversations").select("id").eq("user_a", a).eq("user_b", b).maybeSingle();
+    if (!existing) await supabase.from("conversations").insert({ user_a: a, user_b: b, hidden_by_a_at: null, hidden_by_b_at: null });
+    toast.success(`${selectedClient.display_name ?? selectedClient.email} added`);
+    setOpen(false); setForm({ display_name: "", email: "", company: "" }); setSelectedClient(null);
     qc.invalidateQueries({ queryKey: ["billing-clients"] });
   }
 
@@ -436,11 +450,10 @@ function Clients() {
           <SheetContent>
             <SheetHeader><SheetTitle>Add a client</SheetTitle></SheetHeader>
             <div className="mt-5 space-y-4">
-              <div className="space-y-1.5"><Label>Contact name</Label><Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Search email</Label><UserEmailSearch excludeUserId={user?.id} selected={selectedClient} onSelect={setSelectedClient} placeholder="client@email.com" /></div>
               <div className="space-y-1.5"><Label>Company (optional)</Label><Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></div>
               <Button onClick={addClient} className="w-full font-semibold">Save client</Button>
-              <p className="text-xs text-muted-foreground">Tip: anyone you message on InstaGIG appears here automatically.</p>
+              <p className="text-xs text-muted-foreground">Choose a registered user from the dropdown. If no account exists, it will say user not found.</p>
             </div>
           </SheetContent>
         </Sheet>
@@ -451,9 +464,7 @@ function Clients() {
           {clients.map((c) => (
             <div key={c.id} className="rounded-2xl border border-border bg-card p-5 transition hover:border-primary/40">
               <div className="flex items-center gap-3">
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-primary font-display font-bold text-primary-foreground">
-                  {(c.display_name?.[0] ?? "?").toUpperCase()}
-                </div>
+                <UserAvatar userId={c.id} name={c.display_name} avatarUrl={c.avatar_url} size={48} />
                 <div className="min-w-0">
                   <div className="truncate font-semibold">{c.display_name}</div>
                   <div className="truncate text-xs text-muted-foreground">{c.headline ?? "Client"}</div>

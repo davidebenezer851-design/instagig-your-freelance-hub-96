@@ -1,6 +1,6 @@
 export function PageLoader({ label = "Loading" }: { label?: string }) {
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-background/70 backdrop-blur-sm">
+    <div data-page-loader="true" className="fixed inset-0 z-[60] grid place-items-center bg-background/70 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4">
         <div className="relative h-14 w-14">
           <span className="absolute inset-0 rounded-full border-2 border-primary/20" />
