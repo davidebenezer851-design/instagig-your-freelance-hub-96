@@ -118,6 +118,71 @@ function MessagesPage() {
   );
 }
 
+function NewChatByEmail({ onOpen }: { onOpen: (convId: string) => void }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function start() {
+    if (!user || !email.trim()) return;
+    setBusy(true);
+    try {
+      const q = email.trim().toLowerCase();
+      // Look up recipient by email in profiles (falls back to display_name match).
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("id,display_name")
+        .or(`email.eq.${q},display_name.ilike.${q}`)
+        .maybeSingle();
+      if (!prof) { toast.error("No user found with that email"); return; }
+      if (prof.id === user.id) { toast.error("That's you 🙂"); return; }
+      const [a, b] = [user.id, prof.id].sort();
+      const { data: existing } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("user_a", a).eq("user_b", b).maybeSingle();
+      let convId = existing?.id;
+      if (!convId) {
+        const { data: created, error } = await supabase
+          .from("conversations")
+          .insert({ user_a: a, user_b: b })
+          .select("id").single();
+        if (error) throw error;
+        convId = created.id;
+      }
+      setOpen(false); setEmail("");
+      onOpen(convId!);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="secondary" className="h-8 gap-1"><Send className="h-3.5 w-3.5" />New</Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72">
+        <div className="space-y-2">
+          <div className="text-sm font-semibold">Start a new chat</div>
+          <p className="text-xs text-muted-foreground">Enter the email or name of the person you want to message.</p>
+          <input
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="name@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") start(); }}
+          />
+          <Button onClick={start} disabled={busy || !email.trim()} className="w-full" size="sm">
+            {busy ? "Searching…" : "Start chat"}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
   const { user } = useAuth();
   const isMobile = useIsMobile();
