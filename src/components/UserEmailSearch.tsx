@@ -65,7 +65,9 @@ export function UserEmailSearch({ excludeUserId, placeholder = "Search by email"
 
       {showMenu && (
         <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
-          {results.length > 0 ? results.map((profile) => {
+          {isFetching ? (
+            <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Searching…</div>
+          ) : results.length > 0 ? results.map((profile) => {
             const name = profile.display_name || profile.username || profile.email?.split("@")[0] || "User";
             return (
               <button
