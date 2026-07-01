@@ -484,7 +484,8 @@ function SwipeableMessage({ children, onReply, mine }: { children: React.ReactNo
 
   return (
     <div
-      className={`swipe-row relative flex ${mine ? "justify-end" : "justify-start"} ${dragging ? "is-dragging" : ""}`}
+      className={`swipe-row relative flex items-end ${mine ? "justify-end" : "justify-start"} ${dragging ? "is-dragging" : ""}`}
+      style={{ touchAction: "pan-y" }}
       onTouchStart={(e) => onStart(e.touches[0].clientX, e.touches[0].clientY)}
       onTouchMove={(e) => onMove(e.touches[0].clientX, e.touches[0].clientY)}
       onTouchEnd={onEnd}
@@ -492,10 +493,16 @@ function SwipeableMessage({ children, onReply, mine }: { children: React.ReactNo
       onPointerMove={(e) => { if (e.pointerType === "mouse") return; onMove(e.clientX, e.clientY); }}
       onPointerUp={(e) => { if (e.pointerType === "mouse") return; onEnd(); }}
     >
-      <span className="swipe-reply-hint" style={{ left: 4, opacity: dx > 16 ? Math.min(1, dx / 50) : 0 }}>
+      <span
+        className="pointer-events-none absolute left-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-primary/20 text-primary"
+        style={{ opacity: dx > 16 ? Math.min(1, dx / 50) : 0, transform: `translateY(-50%) scale(${Math.min(1, dx / 50)})` }}
+      >
         <Reply className="h-4 w-4" />
       </span>
-      <div style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform 180ms ease" }} className="contents">
+      <div
+        style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform 180ms ease" }}
+        className={`flex max-w-full ${mine ? "justify-end" : "justify-start"}`}
+      >
         {children}
       </div>
     </div>
