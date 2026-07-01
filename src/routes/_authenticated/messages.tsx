@@ -38,6 +38,7 @@ type Conv = {
   hidden_by_b_at?: string | null;
   other?: { id: string; display_name: string | null; avatar_url: string | null; email?: string | null } | null;
 };
+type ChatOther = { id: string; display_name: string | null; avatar_url: string | null; email?: string | null } | null;
 type Message = {
   id: string; sender_id: string; body: string | null; created_at: string;
   attachment_url: string | null; attachment_type: string | null; attachment_name: string | null; attachment_size: number | null;
@@ -291,8 +292,8 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
       const { data: c } = await supabase.from("conversations").select("user_a,user_b").eq("id", convId).maybeSingle();
       if (!c) return null;
       const otherId = c.user_a === user!.id ? c.user_b : c.user_a;
-      const { data: p } = await supabase.from("profiles").select("id,display_name,avatar_url").eq("id", otherId).maybeSingle();
-      return p;
+      const { data: p } = await supabase.from("profiles").select("id,display_name,avatar_url,email").eq("id", otherId).maybeSingle();
+      return p as ChatOther;
     },
   });
 
@@ -485,6 +486,8 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
     }
   }
 
+  const chatName = otherUser?.display_name || otherUser?.email?.split("@")[0] || "Conversation";
+
   return (
     <>
       <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-border p-3">
@@ -492,9 +495,9 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex min-w-0 items-center gap-3">
-          <UserAvatar userId={otherUser?.id} name={otherUser?.display_name} avatarUrl={otherUser?.avatar_url} size={36} />
+          <UserAvatar userId={otherUser?.id} name={chatName} avatarUrl={otherUser?.avatar_url} size={36} />
           <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">{otherUser?.display_name ?? "Loading…"}</div>
+          <div className="truncate text-sm font-semibold">{chatName}</div>
           <div className="text-xs text-muted-foreground">{otherTyping ? "typing…" : "Online"}</div>
           </div>
         </div>
