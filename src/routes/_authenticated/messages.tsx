@@ -148,11 +148,13 @@ function MessagesPage() {
 function ConversationListItem({ conversation, active, onOpen, onDelete }: { conversation: Conv; active: boolean; onOpen: () => void; onDelete: () => void }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressedRef = useRef(false);
   const name = conversation.other?.display_name || conversation.other?.email?.split("@")[0] || "Unknown";
 
   function startLongPress() {
     if (longPressRef.current) clearTimeout(longPressRef.current);
-    longPressRef.current = setTimeout(() => setConfirmOpen(true), 550);
+    longPressedRef.current = false;
+    longPressRef.current = setTimeout(() => { longPressedRef.current = true; setConfirmOpen(true); }, 550);
   }
   function stopLongPress() {
     if (longPressRef.current) clearTimeout(longPressRef.current);
@@ -163,7 +165,7 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <button
-            onClick={onOpen}
+            onClick={(e) => { if (longPressedRef.current) { e.preventDefault(); longPressedRef.current = false; return; } onOpen(); }}
             onTouchStart={startLongPress}
             onTouchEnd={stopLongPress}
             onTouchMove={stopLongPress}
@@ -225,6 +227,9 @@ function NewChatByEmail({ onOpen }: { onOpen: (convId: string) => void }) {
           .select("id").single();
         if (error) throw error;
         convId = created.id;
+      } else {
+        const patch = a === user.id ? { hidden_by_a_at: null } : { hidden_by_b_at: null };
+        await supabase.from("conversations").update(patch).eq("id", convId);
       }
       setOpen(false); setSelected(null);
       onOpen(convId!);
