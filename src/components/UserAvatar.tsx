@@ -36,13 +36,17 @@ export function UserAvatar({ userId, name, avatarUrl, size = 32, className }: Pr
       }
     }
     window.addEventListener("instagig:avatar-updated", onAvatarUpdate);
-    const channel = supabase.channel(`avatar:${userId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` }, (payload) => {
+    const channel = supabase.channel(`avatar:${userId}:${Math.random().toString(36).slice(2, 8)}`);
+    channel.on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+      (payload) => {
         const next = payload.new as { avatar_url?: string | null };
         if (next.avatar_url !== undefined) setLiveAvatarUrl(next.avatar_url);
         setVersion((v) => v + 1);
-      })
-      .subscribe();
+      },
+    );
+    channel.subscribe();
     return () => { window.removeEventListener("instagig:avatar-updated", onAvatarUpdate); supabase.removeChannel(channel); };
   }, [userId]);
 
