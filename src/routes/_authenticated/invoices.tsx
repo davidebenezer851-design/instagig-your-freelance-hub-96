@@ -318,16 +318,22 @@ function Builder({ onSaved }: { onSaved: () => void }) {
 
           <div className="mt-5">
             <Label>Line items</Label>
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 space-y-3">
               {items.map((it, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_60px_80px_80px_auto] items-center gap-2">
-                  <Input placeholder="Description" value={it.description} onChange={(e) => { const n=[...items]; n[idx]={...it, description:e.target.value}; setItems(n);}} />
-                  <Input type="number" min="1" value={it.qty} onChange={(e) => { const n=[...items]; n[idx]={...it, qty:parseFloat(e.target.value)||0}; setItems(n);}} />
-                  <Input type="number" min="0" value={it.rate} onChange={(e) => { const n=[...items]; n[idx]={...it, rate:parseFloat(e.target.value)||0}; setItems(n);}} />
-                  <div className="text-right text-sm font-medium">${((it.qty||0)*(it.rate||0)).toFixed(2)}</div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setItems(items.filter((_, i) => i !== idx))} disabled={items.length === 1}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div key={idx} className="rounded-xl border border-border bg-background/40 p-3 sm:border-0 sm:bg-transparent sm:p-0">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_70px_90px_80px_auto] sm:items-center">
+                    <Input placeholder="Description" value={it.description} onChange={(e) => { const n=[...items]; n[idx]={...it, description:e.target.value}; setItems(n);}} />
+                    <div className="grid grid-cols-2 gap-2 sm:contents">
+                      <Input type="number" min="1" placeholder="Qty" value={it.qty} onChange={(e) => { const n=[...items]; n[idx]={...it, qty:parseFloat(e.target.value)||0}; setItems(n);}} />
+                      <Input type="number" min="0" placeholder="Rate" value={it.rate} onChange={(e) => { const n=[...items]; n[idx]={...it, rate:parseFloat(e.target.value)||0}; setItems(n);}} />
+                    </div>
+                    <div className="flex items-center justify-between sm:contents">
+                      <div className="text-sm font-medium sm:text-right">${((it.qty||0)*(it.rate||0)).toFixed(2)}</div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setItems(items.filter((_, i) => i !== idx))} disabled={items.length === 1}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ))}
               <Button type="button" variant="ghost" size="sm" onClick={() => setItems([...items, { description: "", qty: 1, rate: 0 }])}>
