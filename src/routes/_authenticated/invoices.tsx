@@ -362,48 +362,50 @@ function Builder({ onSaved }: { onSaved: () => void }) {
         </div>
 
         {/* Live preview */}
-        <div className="rounded-2xl border border-primary/30 bg-card p-6 shadow-[0_0_60px_-30px_var(--color-primary)]">
-          <div className="flex items-center justify-between border-b border-border pb-4">
-            <div>
+        <div className="min-w-0 rounded-2xl border border-primary/30 bg-card p-4 shadow-[0_0_60px_-30px_var(--color-primary)] sm:p-6">
+          <div className="flex items-center justify-between gap-3 border-b border-border pb-4">
+            <div className="min-w-0">
               <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary font-display font-bold text-primary-foreground">iG</div>
               <div className="mt-2 font-display text-lg font-bold">Insta<span className="text-primary">GIG</span></div>
             </div>
             <div className="text-right">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Invoice</div>
-              <div className="font-mono text-sm">{format(new Date(issueDate || Date.now()), "yyyyMMdd")}-DRAFT</div>
+              <div className="font-mono text-xs sm:text-sm">{format(new Date(issueDate || Date.now()), "yyyyMMdd")}-DRAFT</div>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-            <div>
+            <div className="min-w-0">
               <div className="text-xs text-muted-foreground">Billed to</div>
-              <div className="mt-1 font-semibold">{recipientName}</div>
+              <div className="mt-1 truncate font-semibold">{recipientName}</div>
             </div>
-            <div className="text-right">
+            <div className="min-w-0 text-right">
               <div className="text-xs text-muted-foreground">Due</div>
-              <div className="mt-1 font-semibold">{dueDate ? format(new Date(dueDate), "MMM d, yyyy") : "—"}</div>
+              <div className="mt-1 truncate font-semibold">{dueDate ? format(new Date(dueDate), "MMM d, yyyy") : "—"}</div>
             </div>
           </div>
 
-          <h2 className="mt-4 font-display text-xl font-semibold">{title || "Untitled invoice"}</h2>
+          <h2 className="mt-4 font-display text-lg font-semibold sm:text-xl">{title || "Untitled invoice"}</h2>
 
-          <table className="mt-3 w-full text-sm">
-            <thead className="text-xs uppercase text-muted-foreground">
-              <tr><th className="py-2 text-left">Item</th><th className="text-right">Qty</th><th className="text-right">Rate</th><th className="text-right">Total</th></tr>
-            </thead>
-            <tbody>
-              {items.map((i, idx) => (
-                <tr key={idx} className="border-t border-border">
-                  <td className="py-2">{i.description || <span className="text-muted-foreground">Item description</span>}</td>
-                  <td className="text-right">{i.qty}</td>
-                  <td className="text-right">${Number(i.rate).toFixed(2)}</td>
-                  <td className="text-right font-medium">${((i.qty||0)*(i.rate||0)).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="mt-3 w-full overflow-x-auto">
+            <table className="w-full min-w-[420px] text-sm">
+              <thead className="text-xs uppercase text-muted-foreground">
+                <tr><th className="py-2 text-left">Item</th><th className="text-right">Qty</th><th className="text-right">Rate</th><th className="text-right">Total</th></tr>
+              </thead>
+              <tbody>
+                {items.map((i, idx) => (
+                  <tr key={idx} className="border-t border-border">
+                    <td className="py-2 pr-2">{i.description || <span className="text-muted-foreground">Item description</span>}</td>
+                    <td className="text-right">{i.qty}</td>
+                    <td className="text-right">${Number(i.rate).toFixed(2)}</td>
+                    <td className="text-right font-medium">${((i.qty||0)*(i.rate||0)).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-          <div className="mt-4 ml-auto w-56 space-y-1 text-sm">
+          <div className="mt-4 ml-auto w-full max-w-xs space-y-1 text-sm sm:w-56">
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Tax ({tax}%)</span><span>${taxAmt.toFixed(2)}</span></div>
             <div className="flex justify-between border-t border-border pt-2 font-display text-lg font-bold"><span>Grand Total</span><span className="text-primary">${total.toFixed(2)}</span></div>
