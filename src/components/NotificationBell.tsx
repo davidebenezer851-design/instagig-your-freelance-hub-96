@@ -7,6 +7,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 type Notif = {
   id: string; type: string; title: string; body: string | null;
@@ -28,37 +29,36 @@ export function NotificationBell() {
       .limit(20)
       .then(({ data }) => { if (active) setItems((data ?? []) as Notif[]); });
 
-    const channel = supabase
-      .channel(`notif:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          const n = payload.new as Notif;
-          setItems((p) => [n, ...p].slice(0, 20));
-          // Browser push when tab not active / permission granted
-          if (typeof Notification !== "undefined" && Notification.permission === "granted" && document.visibilityState !== "visible") {
-            try {
-              const not = new Notification(n.title, { body: n.body ?? "", tag: n.id, icon: "/favicon.ico" });
-              not.onclick = () => { window.focus(); if (n.link) window.location.href = n.link; };
-            } catch {}
-          }
+    const channel = supabase.channel(`notif:${user.id}:${Math.random().toString(36).slice(2, 8)}`);
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+      (payload) => {
+        const n = payload.new as Notif;
+        setItems((p) => [n, ...p].slice(0, 20));
+        // In-app toast so users see the alert regardless of which tab they're on
+        toast(n.title, {
+          description: n.body ?? undefined,
+          action: n.link ? { label: "Open", onClick: () => { window.location.href = n.link!; } } : undefined,
+        });
+        // Native push (fires on desktop and mobile when permission granted)
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          try {
+            const not = new Notification(n.title, { body: n.body ?? "", tag: n.id, icon: "/favicon.ico" });
+            not.onclick = () => { window.focus(); if (n.link) window.location.href = n.link; };
+          } catch {}
         }
-      )
-      .subscribe();
+      }
+    ).subscribe();
 
     return () => { active = false; supabase.removeChannel(channel); };
   }, [user]);
 
-  // Ask for push permission once
+  // Ask for push permission automatically on first mount (users can opt out in Settings)
   useEffect(() => {
     if (!user || typeof Notification === "undefined") return;
     if (Notification.permission === "default") {
-      const asked = localStorage.getItem("ig-notif-asked");
-      if (!asked) {
-        Notification.requestPermission().catch(() => {});
-        localStorage.setItem("ig-notif-asked", "1");
-      }
+      Notification.requestPermission().catch(() => {});
     }
   }, [user]);
 

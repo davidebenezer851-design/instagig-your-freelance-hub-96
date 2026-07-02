@@ -28,13 +28,24 @@ function Settings() {
   const [pw, setPw] = useState("");
 
   async function togglePush(on: boolean) {
-    if (typeof Notification === "undefined") { toast.error("Notifications not supported"); return; }
-    if (on && Notification.permission !== "granted") {
-      const r = await Notification.requestPermission();
-      if (r !== "granted") { toast.error("Permission denied"); return; }
+    if (typeof Notification === "undefined") { toast.error("Notifications not supported in this browser"); return; }
+    if (on) {
+      if (Notification.permission === "denied") {
+        toast.error("Notifications are blocked. Enable them in your browser/site settings, then try again.");
+        return;
+      }
+      if (Notification.permission !== "granted") {
+        const r = await Notification.requestPermission();
+        if (r !== "granted") { toast.error("Permission denied"); return; }
+      }
+      setPushOn(true);
+      try { new Notification("Notifications enabled", { body: "You'll be alerted about new messages.", icon: "/favicon.ico" }); } catch {}
+      toast.success("Push notifications enabled");
+    } else {
+      // Browsers don't allow revoking permission from JS; user must do it in site settings.
+      setPushOn(false);
+      toast.message("Turned off in-app. To fully revoke, disable notifications for this site in your browser settings.");
     }
-    setPushOn(on);
-    toast.success(on ? "Push notifications enabled" : "Push notifications disabled");
   }
 
   async function changePassword() {
