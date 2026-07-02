@@ -457,7 +457,7 @@ function Clients() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wide text-primary">Clients</div>
-          <h1 className="font-display text-3xl font-bold">Client Management</h1>
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">Client Management</h1>
           <p className="mt-1 text-sm text-muted-foreground">Everyone you've worked with on InstaGIG.</p>
         </div>
         <Sheet open={open} onOpenChange={setOpen}>
