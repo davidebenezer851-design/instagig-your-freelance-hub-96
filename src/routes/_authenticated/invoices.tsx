@@ -512,7 +512,7 @@ function SettingsPanel() {
   return (
     <div className="max-w-2xl">
       <div className="text-xs uppercase tracking-wide text-primary">Settings</div>
-      <h1 className="font-display text-3xl font-bold">Settings & Branding</h1>
+      <h1 className="font-display text-2xl font-bold sm:text-3xl">Settings & Branding</h1>
       <p className="mt-1 text-sm text-muted-foreground">Personalize every invoice you send.</p>
 
       <div className="mt-6 space-y-5 rounded-2xl border border-border bg-card p-6">
