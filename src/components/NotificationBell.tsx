@@ -25,6 +25,7 @@ export function NotificationBell() {
       .from("notifications")
       .select("id,type,title,body,link,read,created_at")
       .eq("user_id", user.id)
+      .neq("type", "message")
       .order("created_at", { ascending: false })
       .limit(20)
       .then(({ data }) => { if (active) setItems((data ?? []) as Notif[]); });
