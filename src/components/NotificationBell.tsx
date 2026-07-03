@@ -36,6 +36,7 @@ export function NotificationBell() {
       { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
       (payload) => {
         const n = payload.new as Notif;
+        if (n.type === "message") return; // message alerts live on the Messages tab, not the bell
         setItems((p) => [n, ...p].slice(0, 20));
         // In-app toast so users see the alert regardless of which tab they're on
         toast(n.title, {
