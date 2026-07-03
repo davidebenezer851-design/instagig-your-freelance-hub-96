@@ -109,11 +109,11 @@ function MessagesPage() {
 
   useEffect(() => {
     if (!user) return;
-    const channel = supabase.channel(`conversation-list:${user.id}`)
+    const channel = supabase.channel(`conversation-list:${user.id}:${Math.random().toString(36).slice(2, 8)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
         qc.invalidateQueries({ queryKey: ["conversations", user.id] });
       })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
         qc.invalidateQueries({ queryKey: ["conversations", user.id] });
       })
       .subscribe();
