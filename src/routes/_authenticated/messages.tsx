@@ -191,6 +191,9 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
     if (longPressRef.current) clearTimeout(longPressRef.current);
   }
 
+  const unread = conversation.unread ?? 0;
+  const preview = conversation.preview ?? "No messages yet";
+
   return (
     <li>
       <ContextMenu>
@@ -202,14 +205,27 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
             onTouchMove={stopLongPress}
             className={`grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-3 text-left transition hover:bg-secondary ${active ? "bg-secondary" : ""}`}
           >
-            <UserAvatar userId={conversation.other?.id} name={name} avatarUrl={conversation.other?.avatar_url} size={40} />
+            <UserAvatar userId={conversation.other?.id} name={name} avatarUrl={conversation.other?.avatar_url} size={44} />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">{name}</span>
-              <span className="block truncate text-xs text-muted-foreground">{formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true })}</span>
+              <span className="flex items-center justify-between gap-2">
+                <span className={`truncate text-sm ${unread > 0 ? "font-semibold text-foreground" : "font-medium"}`}>{name}</span>
+                <span className={`shrink-0 text-[10px] ${unread > 0 ? "font-semibold text-green-500" : "text-muted-foreground"}`}>
+                  {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: false })}
+                </span>
+              </span>
+              <span className={`mt-0.5 block truncate text-xs ${unread > 0 ? "font-medium text-foreground/80" : "text-muted-foreground"}`}>
+                {preview}
+              </span>
             </span>
-            <span className="hidden h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive md:grid" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}>
-              <Trash2 className="h-4 w-4" />
-            </span>
+            {unread > 0 ? (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-green-500 px-1.5 text-[10px] font-bold leading-none text-white shadow-sm">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            ) : (
+              <span className="hidden h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive md:grid" onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}>
+                <Trash2 className="h-4 w-4" />
+              </span>
+            )}
           </button>
         </ContextMenuTrigger>
         <ContextMenuContent>
