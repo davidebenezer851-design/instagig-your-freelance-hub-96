@@ -808,9 +808,7 @@ function MessageBubble({ m, mine, replied }: { m: Message; mine: boolean; replie
         </a>
       )}
       {m.attachment_url && isAudio && (
-        <div className="flex items-center gap-2 p-2">
-          <audio src={m.attachment_url} controls className="h-9 w-56 max-w-full" />
-        </div>
+        <VoiceNote src={m.attachment_url} mine={mine} />
       )}
       {m.attachment_url && !isImg && !isAudio && (
         <a href={m.attachment_url} target="_blank" rel="noreferrer"
