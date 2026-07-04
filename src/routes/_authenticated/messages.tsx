@@ -158,7 +158,7 @@ function MessagesPage() {
               </ul>
             ) : (
               <div className="p-8 text-center text-sm text-muted-foreground">
-                No conversations yet. Message a freelancer or client from a gig or job.
+                No messages yet. Start one from a gig or job.
               </div>
             )}
           </div>
