@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Total unread messages across all conversations the current user participates in.
- * Rendered as a WhatsApp-style bubble on the header messages icon.
+ * Rendered as a lemon-green bubble on the header messages icon.
  */
 export function useUnreadMessagesCount() {
   const { user } = useAuth();
@@ -15,7 +15,6 @@ export function useUnreadMessagesCount() {
     let active = true;
 
     async function load() {
-      // Count messages where I'm on the conversation, someone else sent it, and I haven't read it.
       const { data: convs } = await supabase
         .from("conversations")
         .select("id")
@@ -48,7 +47,7 @@ export function MessagesBadge() {
   const count = useUnreadMessagesCount();
   if (!count) return null;
   return (
-    <span className="pointer-events-none absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-green-500 px-1 text-[9px] font-bold leading-none text-white shadow ring-2 ring-background">
+    <span className="pointer-events-none absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground shadow ring-2 ring-background">
       {count > 99 ? "99+" : count}
     </span>
   );
