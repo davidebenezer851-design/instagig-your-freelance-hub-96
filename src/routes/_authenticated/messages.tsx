@@ -611,25 +611,35 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
 
       <div ref={scrollRef} className="min-w-0 flex-1 overflow-y-auto bg-[var(--gradient-ink)] p-2 sm:p-4" style={{ minHeight: 0 }}>
         <div className="space-y-2">
-          {messages.map((m) => {
+          {messages.map((m, idx) => {
             const mine = m.sender_id === user?.id;
             const replied = m.reply_to ? messages.find((x) => x.id === m.reply_to) : null;
+            const prev = idx > 0 ? messages[idx - 1] : null;
+            const showDay = !prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
             return (
-              <SwipeableMessage
-                key={m.id}
-                onReply={() => setReplyTo(m)}
-                onDelete={mine ? () => { setSelectedMessage(m); setDeleteDialogOpen(true); } : undefined}
-                onForward={async () => {
-                  const text = m.body ?? m.attachment_url ?? "";
-                  try { await navigator.clipboard.writeText(text); toast.success("Copied — paste into any chat to forward"); }
-                  catch { toast.error("Couldn't copy message"); }
-                }}
-                onLongPress={() => setActionSheet(m)}
-                mine={mine}
-                selected={selectedMessage?.id === m.id}
-              >
-                <MessageBubble m={m} mine={mine} replied={replied ?? null} />
-              </SwipeableMessage>
+              <div key={m.id}>
+                {showDay && (
+                  <div className="my-3 flex justify-center">
+                    <span className="rounded-full bg-card/80 px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm ring-1 ring-border">
+                      {dayLabel(m.created_at)}
+                    </span>
+                  </div>
+                )}
+                <SwipeableMessage
+                  onReply={() => setReplyTo(m)}
+                  onDelete={mine ? () => { setSelectedMessage(m); setDeleteDialogOpen(true); } : undefined}
+                  onForward={async () => {
+                    const text = m.body ?? m.attachment_url ?? "";
+                    try { await navigator.clipboard.writeText(text); toast.success("Copied — paste into any chat to forward"); }
+                    catch { toast.error("Couldn't copy message"); }
+                  }}
+                  onLongPress={() => setActionSheet(m)}
+                  mine={mine}
+                  selected={selectedMessage?.id === m.id}
+                >
+                  <MessageBubble m={m} mine={mine} replied={replied ?? null} />
+                </SwipeableMessage>
+              </div>
             );
           })}
           {messages.length === 0 && <div className="py-12 text-center text-xs text-muted-foreground">Say hi 👋</div>}
