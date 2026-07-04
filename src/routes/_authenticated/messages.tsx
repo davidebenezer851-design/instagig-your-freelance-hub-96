@@ -828,50 +828,65 @@ function uploadedTempId() {
 }
 
 function SwipeableMessage({ children, onReply, onDelete, onForward, onLongPress, mine, selected }: { children: React.ReactNode; onReply: () => void; onDelete?: () => void; onForward: () => void; onLongPress: () => void; mine: boolean; selected?: boolean }) {
-  const [dx, setDx] = useState(0);
-  const [dragging, setDragging] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<HTMLSpanElement>(null);
+  const dxRef = useRef(0);
   const startX = useRef(0);
   const startY = useRef(0);
   const decided = useRef<"h" | "v" | null>(null);
+  const dragging = useRef(false);
+  const rafId = useRef<number | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const didLongPress = useRef(false);
+
+  function apply(dx: number) {
+    const t = trackRef.current, i = iconRef.current;
+    if (t) t.style.transform = `translate3d(${dx}px,0,0)`;
+    if (i) {
+      const s = Math.min(1, dx / 50);
+      i.style.opacity = String(dx > 16 ? s : 0);
+      i.style.transform = `translateY(-50%) scale(${s})`;
+    }
+  }
 
   function onStart(x: number, y: number) {
-    startX.current = x; startY.current = y; decided.current = null; setDragging(true);
-    didLongPress.current = false;
-    // 600ms hold threshold for mobile press-and-hold overlay.
+    startX.current = x; startY.current = y; decided.current = null; dragging.current = true;
+    const t = trackRef.current; if (t) t.style.transition = "none";
     longPressRef.current = setTimeout(() => {
-      didLongPress.current = true;
       if (navigator.vibrate) { try { navigator.vibrate(15); } catch { /* noop */ } }
       onLongPress();
-    }, 600);
+    }, 550);
   }
   function onMove(x: number, y: number) {
-    if (!dragging) return;
+    if (!dragging.current) return;
     const ddx = x - startX.current;
     const ddy = y - startY.current;
     if (decided.current === null) {
       if (Math.abs(ddx) > 6 || Math.abs(ddy) > 6) decided.current = Math.abs(ddx) > Math.abs(ddy) ? "h" : "v";
     }
-    // If the finger moves at all, cancel the long-press timer.
     if (Math.abs(ddx) > 6 || Math.abs(ddy) > 6) {
       if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
     }
     if (decided.current !== "h") return;
     const clamped = Math.max(0, Math.min(80, ddx));
-    setDx(clamped);
+    dxRef.current = clamped;
+    if (rafId.current == null) {
+      rafId.current = requestAnimationFrame(() => { rafId.current = null; apply(dxRef.current); });
+    }
   }
   function onEnd() {
     if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null; }
-    if (dx > 50) onReply();
-    setDx(0); setDragging(false); decided.current = null;
+    const finalDx = dxRef.current;
+    dragging.current = false; decided.current = null;
+    const t = trackRef.current; if (t) t.style.transition = "transform 180ms ease";
+    dxRef.current = 0; apply(0);
+    if (finalDx > 50) onReply();
   }
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          className={`swipe-row group relative flex items-end ${mine ? "justify-end" : "justify-start"} ${dragging ? "is-dragging" : ""} ${selected ? "rounded-xl bg-primary/10" : ""}`}
+          className={`swipe-row group relative flex items-end ${mine ? "justify-end" : "justify-start"} ${selected ? "rounded-xl bg-primary/10" : ""}`}
           style={{ touchAction: "pan-y" }}
           onTouchStart={(e) => onStart(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchMove={(e) => onMove(e.touches[0].clientX, e.touches[0].clientY)}
@@ -879,13 +894,15 @@ function SwipeableMessage({ children, onReply, onDelete, onForward, onLongPress,
           onTouchCancel={onEnd}
         >
           <span
-            className="pointer-events-none absolute left-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-primary/20 text-primary"
-            style={{ opacity: dx > 16 ? Math.min(1, dx / 50) : 0, transform: `translateY(-50%) scale(${Math.min(1, dx / 50)})` }}
+            ref={iconRef}
+            className="pointer-events-none absolute left-1 top-1/2 grid h-8 w-8 place-items-center rounded-full bg-primary/20 text-primary"
+            style={{ opacity: 0, transform: "translateY(-50%) scale(0)", willChange: "transform, opacity" }}
           >
             <Reply className="h-4 w-4" />
           </span>
           <div
-            style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform 180ms ease" }}
+            ref={trackRef}
+            style={{ willChange: "transform" }}
             className={`flex max-w-full min-w-0 items-center gap-1 ${mine ? "flex-row-reverse justify-end" : "justify-start"}`}
           >
             {/* Desktop hover actions — WhatsApp Web style */}
