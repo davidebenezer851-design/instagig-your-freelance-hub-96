@@ -352,14 +352,26 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
   const { data: otherUser } = useQuery({
     queryKey: ["chat-other", convId, user?.id],
     enabled: !!user && !!convId,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data: c } = await supabase.from("conversations").select("user_a,user_b").eq("id", convId).maybeSingle();
       if (!c) return null;
       const otherId = c.user_a === user!.id ? c.user_b : c.user_a;
-      const { data: p } = await supabase.from("profiles").select("id,display_name,avatar_url,email").eq("id", otherId).maybeSingle();
+      const { data: p } = await supabase.from("profiles").select("id,display_name,avatar_url,email,last_seen_at").eq("id", otherId).maybeSingle();
       return p as ChatOther;
     },
   });
+
+  // Presence heartbeat — write my last_seen_at every 25s while the chat is open.
+  useEffect(() => {
+    if (!user) return;
+    const beat = () => { supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id).then(() => {}); };
+    beat();
+    const iv = setInterval(beat, 25_000);
+    const onVis = () => { if (document.visibilityState === "visible") beat(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
+  }, [user]);
 
   useEffect(() => {
     let active = true;
