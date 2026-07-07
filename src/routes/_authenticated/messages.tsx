@@ -88,6 +88,7 @@ function MessagesPage() {
   const navigate = Route.useNavigate();
   const qc = useQueryClient();
   const activeId = search.c;
+  const optimisticReadRef = useRef(new Set<string>());
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", user?.id],
@@ -157,6 +158,53 @@ function MessagesPage() {
     toast.success("Conversation removed from your messages");
   }
 
+  function clearConversationUnreadNow(conversationId: string, unreadCount = 0) {
+    if (!user) return;
+    let hadUnread = unreadCount > 0;
+    qc.setQueryData<Conv[]>(["conversations", user.id], (current) => {
+      if (!current) return current;
+      return current.map((item) => {
+        if (item.id !== conversationId) return item;
+        if ((item.unread ?? 0) > 0) hadUnread = true;
+        return { ...item, unread: 0 };
+      });
+    });
+    if (hadUnread && !optimisticReadRef.current.has(conversationId)) {
+      optimisticReadRef.current.add(conversationId);
+      window.dispatchEvent(new CustomEvent("instagig:message-thread-read", { detail: { conversationId } }));
+      window.setTimeout(() => optimisticReadRef.current.delete(conversationId), 5000);
+    }
+  }
+
+  async function markConversationRead(conversationId: string, unreadCount = 0) {
+    if (!user) return;
+    clearConversationUnreadNow(conversationId, unreadCount);
+    const { error } = await supabase.from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("conversation_id", conversationId)
+      .neq("sender_id", user.id)
+      .is("read_at", null);
+    if (error) {
+      toast.error(error.message);
+      qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+  }
+
+  function openConversation(c: Conv) {
+    if ((c.unread ?? 0) > 0) void markConversationRead(c.id, c.unread ?? 0);
+    navigate({ search: { c: c.id } });
+  }
+
+  useEffect(() => {
+    if (!user || !activeId || !conversations) return;
+    const activeConversation = conversations.find((c) => c.id === activeId);
+    if ((activeConversation?.unread ?? 0) > 0) {
+      void markConversationRead(activeId, activeConversation?.unread ?? 0);
+    }
+  }, [activeId, conversations, user]);
+
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-x-hidden bg-background">
       <Navbar />
@@ -176,7 +224,7 @@ function MessagesPage() {
                     key={c.id}
                     conversation={c}
                     active={activeId === c.id}
-                    onOpen={() => navigate({ search: { c: c.id } })}
+                    onOpen={() => openConversation(c)}
                     onDelete={() => hideConversation(c)}
                   />
                 ))}

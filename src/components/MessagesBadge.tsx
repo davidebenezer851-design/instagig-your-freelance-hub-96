@@ -33,14 +33,23 @@ export function useUnreadMessagesCount() {
       if (active) setCount(threads.size);
     }
 
+    function clearOneUnreadThread() {
+      setCount((current) => Math.max(current - 1, 0));
+    }
+
     load();
+    window.addEventListener("instagig:message-thread-read", clearOneUnreadThread);
     const channel = supabase.channel(`unread-msgs:${user.id}:${Math.random().toString(36).slice(2, 8)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, load)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, load)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, load)
       .subscribe();
 
-    return () => { active = false; supabase.removeChannel(channel); };
+    return () => {
+      active = false;
+      window.removeEventListener("instagig:message-thread-read", clearOneUnreadThread);
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   return count;
