@@ -21,14 +21,16 @@ export function useUnreadMessagesCount() {
         .or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`);
       const ids = (convs ?? []).map((c) => c.id);
       if (ids.length === 0) { if (active) setCount(0); return; }
-      // Sum of ALL unread messages across every thread (WhatsApp-style total).
-      const { count: total } = await supabase
+      // WhatsApp-style: count of THREADS with at least one unread message,
+      // not the sum of unread messages. John(34) + Lacy(16) => badge shows 2.
+      const { data: unread } = await supabase
         .from("messages")
-        .select("id", { count: "exact", head: true })
+        .select("conversation_id")
         .in("conversation_id", ids)
         .neq("sender_id", user!.id)
         .is("read_at", null);
-      if (active) setCount(total ?? 0);
+      const threads = new Set((unread ?? []).map((m: { conversation_id: string }) => m.conversation_id));
+      if (active) setCount(threads.size);
     }
 
     load();
