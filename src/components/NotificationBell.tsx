@@ -21,37 +21,64 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user) return;
     let active = true;
-    supabase
+    const load = async () => {
+      const { data } = await supabase
       .from("notifications")
       .select("id,type,title,body,link,read,created_at")
       .eq("user_id", user.id)
       .neq("type", "message")
       .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => { if (active) setItems((data ?? []) as Notif[]); });
+      .limit(20);
+      if (active) setItems((data ?? []) as Notif[]);
+    };
+
+    load();
 
     const channel = supabase.channel(`notif:${user.id}:${Math.random().toString(36).slice(2, 8)}`);
-    channel.on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-      (payload) => {
-        const n = payload.new as Notif;
-        if (n.type === "message") return; // message alerts live on the Messages tab, not the bell
-        setItems((p) => [n, ...p].slice(0, 20));
-        // In-app toast so users see the alert regardless of which tab they're on
-        toast(n.title, {
-          description: n.body ?? undefined,
-          action: n.link ? { label: "Open", onClick: () => { window.location.href = n.link!; } } : undefined,
-        });
-        // Native push (fires on desktop and mobile when permission granted)
-        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-          try {
-            const not = new Notification(n.title, { body: n.body ?? "", tag: n.id, icon: "/favicon.ico" });
-            not.onclick = () => { window.focus(); if (n.link) window.location.href = n.link; };
-          } catch {}
+    channel
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const n = payload.new as Notif;
+          if (n.type === "message") return; // message alerts live on the Messages tab, not the bell
+          setItems((p) => [n, ...p.filter((item) => item.id !== n.id)].slice(0, 20));
+          // In-app toast so users see the alert regardless of which tab they're on
+          toast(n.title, {
+            description: n.body ?? undefined,
+            action: n.link ? { label: "Open", onClick: () => { window.location.href = n.link!; } } : undefined,
+          });
+          // Native push (fires on desktop and mobile when permission granted)
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            try {
+              const not = new Notification(n.title, { body: n.body ?? "", tag: n.id, icon: "/favicon.ico" });
+              not.onclick = () => { window.focus(); if (n.link) window.location.href = n.link; };
+            } catch {}
+          }
         }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const n = payload.new as Notif;
+          if (n.type === "message") return;
+          setItems((p) => p.map((item) => item.id === n.id ? n : item));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const n = payload.old as Partial<Notif>;
+          if (!n.id) return;
+          setItems((p) => p.filter((item) => item.id !== n.id));
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") load();
       }
-    ).subscribe();
+    );
 
     return () => { active = false; supabase.removeChannel(channel); };
   }, [user]);

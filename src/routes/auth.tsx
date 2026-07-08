@@ -193,25 +193,22 @@ function SignUpForm({ initialRole, onSignedUp }: { initialRole?: "freelancer" | 
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/verify-email`,
             data: { display_name: name, role },
           },
         });
-        if (!error && data.user) {
+        if (!error && data.user && data.session) {
           await supabase.from("user_roles").upsert({ user_id: data.user.id, role }, { onConflict: "user_id,role" });
         }
         setLoading(false);
         if (error) { toast.error(error.message); return; }
-        // Email auto-confirm is enabled → session is already active; go straight in.
         if (data.session) {
           toast.success("Welcome to InstaGIG!");
           onSignedUp(email);
           return;
         }
-        // Fallback: try sign-in immediately
-        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInErr) { toast("Account created — please sign in."); onSignedUp(email); }
-        else { toast.success("Welcome to InstaGIG!"); onSignedUp(email); }
+        toast.success("Verification email sent");
+        onSignedUp(email);
       }}
     >
       <div>
