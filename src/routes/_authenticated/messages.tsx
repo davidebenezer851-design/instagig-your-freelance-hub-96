@@ -490,8 +490,12 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
     if (!user) return;
     const unread = messages.filter((m) => m.sender_id !== user.id && !m.read_at).map((m) => m.id);
     if (unread.length === 0) return;
-    supabase.from("messages").update({ read_at: new Date().toISOString() }).in("id", unread).then(() => {});
-  }, [messages, user]);
+    window.dispatchEvent(new CustomEvent("instagig:message-thread-read", { detail: { conversationId: convId } }));
+    qc.setQueryData<Conv[]>(["conversations", user.id], (current) => current?.map((item) => item.id === convId ? { ...item, unread: 0 } : item));
+    supabase.from("messages").update({ read_at: new Date().toISOString() }).in("id", unread).then(() => {
+      qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+    });
+  }, [convId, messages, qc, user]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
