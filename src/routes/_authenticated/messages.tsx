@@ -90,7 +90,7 @@ function MessagesPage() {
   const activeId = search.c;
   const optimisticReadRef = useRef(new Set<string>());
   const readSuppressionRef = useRef(new Set<string>());
-  const readSuppressionTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const readSuppressionTimersRef = useRef(new Map<string, number>());
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", user?.id],
@@ -190,6 +190,13 @@ function MessagesPage() {
     }, delay);
     readSuppressionTimersRef.current.set(conversationId, nextTimer);
   }
+
+  useEffect(() => {
+    return () => {
+      readSuppressionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      readSuppressionTimersRef.current.clear();
+    };
+  }, []);
 
   async function markConversationRead(conversationId: string, unreadCount = 0) {
     if (!user) return;
