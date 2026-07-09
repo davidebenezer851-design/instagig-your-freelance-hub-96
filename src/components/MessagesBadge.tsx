@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 export function useUnreadMessagesCount() {
   const { user } = useAuth();
   const [unreadThreadIds, setUnreadThreadIds] = useState<Set<string>>(new Set());
-  const recentlyClearedRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (!user) { setUnreadThreadIds(new Set()); return; }
@@ -22,8 +21,6 @@ export function useUnreadMessagesCount() {
         .or(`user_a.eq.${user!.id},user_b.eq.${user!.id}`);
       const ids = (convs ?? []).map((c) => c.id);
       if (ids.length === 0) { if (active) setUnreadThreadIds(new Set()); return; }
-      // WhatsApp-style: count of THREADS with at least one unread message,
-      // not the sum of unread messages. John(34) + Lacy(16) => badge shows 2.
       const { data: unread } = await supabase
         .from("messages")
         .select("conversation_id")
@@ -31,15 +28,12 @@ export function useUnreadMessagesCount() {
         .neq("sender_id", user!.id)
         .is("read_at", null);
       const threads = new Set((unread ?? []).map((m: { conversation_id: string }) => m.conversation_id));
-      recentlyClearedRef.current.forEach((conversationId) => threads.delete(conversationId));
       if (active) setUnreadThreadIds(threads);
     }
 
     function clearUnreadThread(event: Event) {
       const conversationId = (event as CustomEvent<{ conversationId?: string }>).detail?.conversationId;
       if (!conversationId) return;
-      recentlyClearedRef.current.add(conversationId);
-      window.setTimeout(() => recentlyClearedRef.current.delete(conversationId), 3000);
       setUnreadThreadIds((current) => {
         if (!current.has(conversationId)) return current;
         const next = new Set(current);
@@ -53,7 +47,7 @@ export function useUnreadMessagesCount() {
     const channel = supabase.channel(`unread-msgs:${user.id}:${Math.random().toString(36).slice(2, 8)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
         const message = payload.new as { conversation_id?: string; sender_id?: string; read_at?: string | null };
-        if (!message.conversation_id || message.sender_id === user.id || message.read_at || recentlyClearedRef.current.has(message.conversation_id)) return;
+        if (!message.conversation_id || message.sender_id === user.id || message.read_at) return;
         setUnreadThreadIds((current) => {
           if (current.has(message.conversation_id!)) return current;
           const next = new Set(current);
