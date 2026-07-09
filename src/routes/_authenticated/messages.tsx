@@ -89,6 +89,8 @@ function MessagesPage() {
   const qc = useQueryClient();
   const activeId = search.c;
   const optimisticReadRef = useRef(new Set<string>());
+  const readSuppressionRef = useRef(new Set<string>());
+  const readSuppressionTimersRef = useRef(new Map<string, number>());
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", user?.id],
@@ -126,7 +128,7 @@ function MessagesPage() {
       return list.map(c => ({
         ...c,
         other: map.get(c.user_a === user!.id ? c.user_b : c.user_a) ?? null,
-        unread: unreadMap.get(c.id) ?? 0,
+        unread: readSuppressionRef.current.has(c.id) ? 0 : (unreadMap.get(c.id) ?? 0),
         preview: previews.get(c.id) ?? null,
       }));
     },
@@ -160,6 +162,9 @@ function MessagesPage() {
 
   function clearConversationUnreadNow(conversationId: string, unreadCount = 0) {
     if (!user) return;
+    readSuppressionRef.current.add(conversationId);
+    const existingTimer = readSuppressionTimersRef.current.get(conversationId);
+    if (existingTimer) window.clearTimeout(existingTimer);
     let hadUnread = unreadCount > 0;
     qc.setQueryData<Conv[]>(["conversations", user.id], (current) => {
       if (!current) return current;
@@ -176,6 +181,23 @@ function MessagesPage() {
     }
   }
 
+  function releaseReadSuppression(conversationId: string, delay = 1500) {
+    const existingTimer = readSuppressionTimersRef.current.get(conversationId);
+    if (existingTimer) window.clearTimeout(existingTimer);
+    const nextTimer = window.setTimeout(() => {
+      readSuppressionRef.current.delete(conversationId);
+      readSuppressionTimersRef.current.delete(conversationId);
+    }, delay);
+    readSuppressionTimersRef.current.set(conversationId, nextTimer);
+  }
+
+  useEffect(() => {
+    return () => {
+      readSuppressionTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      readSuppressionTimersRef.current.clear();
+    };
+  }, []);
+
   async function markConversationRead(conversationId: string, unreadCount = 0) {
     if (!user) return;
     clearConversationUnreadNow(conversationId, unreadCount);
@@ -185,11 +207,16 @@ function MessagesPage() {
       .neq("sender_id", user.id)
       .is("read_at", null);
     if (error) {
+      readSuppressionRef.current.delete(conversationId);
+      const timer = readSuppressionTimersRef.current.get(conversationId);
+      if (timer) window.clearTimeout(timer);
+      readSuppressionTimersRef.current.delete(conversationId);
       toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["conversations", user.id] });
       return;
     }
     qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+    releaseReadSuppression(conversationId);
   }
 
   function openConversation(c: Conv) {
@@ -268,11 +295,14 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
 
   async function markRead() {
     if (!user) return;
-    await supabase.from("messages")
+    window.dispatchEvent(new CustomEvent("instagig:message-thread-read", { detail: { conversationId: conversation.id } }));
+    qc.setQueryData<Conv[]>(["conversations", user.id], (current) => current?.map((item) => item.id === conversation.id ? { ...item, unread: 0 } : item));
+    const { error } = await supabase.from("messages")
       .update({ read_at: new Date().toISOString() })
       .eq("conversation_id", conversation.id)
       .neq("sender_id", user.id)
       .is("read_at", null);
+    if (error) toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["conversations", user.id] });
   }
 
@@ -490,9 +520,12 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
     if (!user) return;
     const unread = messages.filter((m) => m.sender_id !== user.id && !m.read_at).map((m) => m.id);
     if (unread.length === 0) return;
+    const readAt = new Date().toISOString();
     window.dispatchEvent(new CustomEvent("instagig:message-thread-read", { detail: { conversationId: convId } }));
     qc.setQueryData<Conv[]>(["conversations", user.id], (current) => current?.map((item) => item.id === convId ? { ...item, unread: 0 } : item));
-    supabase.from("messages").update({ read_at: new Date().toISOString() }).in("id", unread).then(() => {
+    setMessages((current) => current.map((message) => unread.includes(message.id) ? { ...message, read_at: readAt } : message));
+    supabase.from("messages").update({ read_at: readAt }).in("id", unread).then(({ error }) => {
+      if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["conversations", user.id] });
     });
   }, [convId, messages, qc, user]);
