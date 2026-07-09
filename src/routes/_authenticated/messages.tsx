@@ -295,11 +295,14 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
 
   async function markRead() {
     if (!user) return;
-    await supabase.from("messages")
+    window.dispatchEvent(new CustomEvent("instagig:message-thread-read", { detail: { conversationId: conversation.id } }));
+    qc.setQueryData<Conv[]>(["conversations", user.id], (current) => current?.map((item) => item.id === conversation.id ? { ...item, unread: 0 } : item));
+    const { error } = await supabase.from("messages")
       .update({ read_at: new Date().toISOString() })
       .eq("conversation_id", conversation.id)
       .neq("sender_id", user.id)
       .is("read_at", null);
+    if (error) toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["conversations", user.id] });
   }
 
@@ -517,9 +520,12 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
     if (!user) return;
     const unread = messages.filter((m) => m.sender_id !== user.id && !m.read_at).map((m) => m.id);
     if (unread.length === 0) return;
+    const readAt = new Date().toISOString();
     window.dispatchEvent(new CustomEvent("instagig:message-thread-read", { detail: { conversationId: convId } }));
     qc.setQueryData<Conv[]>(["conversations", user.id], (current) => current?.map((item) => item.id === convId ? { ...item, unread: 0 } : item));
-    supabase.from("messages").update({ read_at: new Date().toISOString() }).in("id", unread).then(() => {
+    setMessages((current) => current.map((message) => unread.includes(message.id) ? { ...message, read_at: readAt } : message));
+    supabase.from("messages").update({ read_at: readAt }).in("id", unread).then(({ error }) => {
+      if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["conversations", user.id] });
     });
   }, [convId, messages, qc, user]);
