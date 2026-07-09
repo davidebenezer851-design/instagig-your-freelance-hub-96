@@ -89,6 +89,8 @@ function MessagesPage() {
   const qc = useQueryClient();
   const activeId = search.c;
   const optimisticReadRef = useRef(new Set<string>());
+  const readSuppressionRef = useRef(new Set<string>());
+  const readSuppressionTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", user?.id],
@@ -126,7 +128,7 @@ function MessagesPage() {
       return list.map(c => ({
         ...c,
         other: map.get(c.user_a === user!.id ? c.user_b : c.user_a) ?? null,
-        unread: unreadMap.get(c.id) ?? 0,
+        unread: readSuppressionRef.current.has(c.id) ? 0 : (unreadMap.get(c.id) ?? 0),
         preview: previews.get(c.id) ?? null,
       }));
     },
@@ -160,6 +162,9 @@ function MessagesPage() {
 
   function clearConversationUnreadNow(conversationId: string, unreadCount = 0) {
     if (!user) return;
+    readSuppressionRef.current.add(conversationId);
+    const existingTimer = readSuppressionTimersRef.current.get(conversationId);
+    if (existingTimer) window.clearTimeout(existingTimer);
     let hadUnread = unreadCount > 0;
     qc.setQueryData<Conv[]>(["conversations", user.id], (current) => {
       if (!current) return current;
@@ -176,6 +181,16 @@ function MessagesPage() {
     }
   }
 
+  function releaseReadSuppression(conversationId: string, delay = 1500) {
+    const existingTimer = readSuppressionTimersRef.current.get(conversationId);
+    if (existingTimer) window.clearTimeout(existingTimer);
+    const nextTimer = window.setTimeout(() => {
+      readSuppressionRef.current.delete(conversationId);
+      readSuppressionTimersRef.current.delete(conversationId);
+    }, delay);
+    readSuppressionTimersRef.current.set(conversationId, nextTimer);
+  }
+
   async function markConversationRead(conversationId: string, unreadCount = 0) {
     if (!user) return;
     clearConversationUnreadNow(conversationId, unreadCount);
@@ -185,11 +200,16 @@ function MessagesPage() {
       .neq("sender_id", user.id)
       .is("read_at", null);
     if (error) {
+      readSuppressionRef.current.delete(conversationId);
+      const timer = readSuppressionTimersRef.current.get(conversationId);
+      if (timer) window.clearTimeout(timer);
+      readSuppressionTimersRef.current.delete(conversationId);
       toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["conversations", user.id] });
       return;
     }
     qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+    releaseReadSuppression(conversationId);
   }
 
   function openConversation(c: Conv) {
