@@ -12,6 +12,8 @@ import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
 import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus, Landmark, Hash, Lock } from "lucide-react";
 import { toast } from "sonner";
 
+const PAYSTACK_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
 const searchSchema = z.object({
   upgrade: z.enum(["pro", "business"]).optional(),
   gig: z.string().optional(),
