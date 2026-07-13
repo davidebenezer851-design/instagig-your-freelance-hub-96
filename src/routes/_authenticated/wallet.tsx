@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
-import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus, Landmark, Hash, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
@@ -37,7 +37,8 @@ const UPGRADES: Record<string, { name: string; price: number; perks: string[] }>
   business: { name: "InstaGIG Business (monthly)", price: 49, perks: ["Team workspaces", "Custom invoices", "Dedicated manager"] },
 };
 
-type LinkedMethod = { id: string; brand: "stripe" | "paypal" | "card" | "bank"; label: string; sub: string };
+type PaystackChannel = "card" | "bank" | "ussd" | "transfer";
+type LinkedMethod = { id: string; brand: PaystackChannel; label: string; sub: string };
 
 function loadMethods(): LinkedMethod[] {
   if (typeof window === "undefined") return [];
@@ -52,7 +53,7 @@ function WalletPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [methods, setMethods] = useState<LinkedMethod[]>([]);
-  const [connectOpen, setConnectOpen] = useState<null | "stripe" | "paypal" | "card" | "bank">(null);
+  const [connectOpen, setConnectOpen] = useState<null | PaystackChannel>(null);
   const [confirm, setConfirm] = useState<{ amount: number; description: string } | null>(null);
 
   useEffect(() => { setMethods(loadMethods()); }, []);
@@ -115,20 +116,23 @@ function WalletPage() {
           </CardContent>
         </Card>
 
-        {/* Linked payment methods */}
+        {/* Paystack payment channels */}
         <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="font-display text-lg font-bold">Linked Payment Methods</h2>
-              <p className="text-xs text-muted-foreground">Connect a way to fund your wallet or get paid out.</p>
+              <h2 className="font-display text-lg font-bold">Payment Channels</h2>
+              <p className="text-xs text-muted-foreground">Everything runs through <span className="font-semibold text-primary">Paystack</span> — pick a channel to link.</p>
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
+              <Lock className="h-3 w-3" /> Secured by Paystack
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { k: "stripe" as const, name: "Stripe", desc: "Card payouts worldwide", icon: CreditCard },
-              { k: "paypal" as const, name: "PayPal", desc: "Send & receive in 200+ countries", icon: WalletIcon },
-              { k: "card" as const, name: "Debit / Credit Card", desc: "Top up instantly", icon: CreditCard },
-              { k: "bank" as const, name: "Bank Transfer", desc: "ACH / SEPA payouts", icon: Building2 },
+              { k: "card" as const, name: "Debit / Credit Card", desc: "Visa, Mastercard, Verve — instant.", icon: CreditCard },
+              { k: "bank" as const, name: "Bank Account", desc: "Direct debit from your bank.", icon: Landmark },
+              { k: "ussd" as const, name: "USSD", desc: "Pay from any phone, no data.", icon: Hash },
+              { k: "transfer" as const, name: "Bank Transfer", desc: "Dedicated Paystack account.", icon: Building2 },
             ].map((m) => {
               const linked = methods.find((x) => x.brand === m.k);
               return (
@@ -337,20 +341,30 @@ function FundModal({ open, onOpenChange, onConfirm }: { open: boolean; onOpenCha
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Payment Method</label>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {[{ k: "Credit Card", i: CreditCard }, { k: "PayPal", i: WalletIcon }, { k: "Bank Transfer", i: Building2 }].map(({ k, i: I }) => (
+            <label className="text-xs font-semibold text-muted-foreground">Paystack Channel</label>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { k: "Card", i: CreditCard },
+                { k: "Bank", i: Landmark },
+                { k: "USSD", i: Hash },
+                { k: "Transfer", i: Building2 },
+              ].map(({ k, i: I }) => (
                 <button key={k} type="button" onClick={() => setMethod(k)}
                   className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${method === k ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"}`}>
                   <I className="h-3.5 w-3.5" />{k}
                 </button>
               ))}
             </div>
+            <div className="mt-3 flex items-center justify-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+              <Lock className="h-3 w-3 text-primary" /> You'll be redirected to <span className="font-semibold text-foreground">Paystack</span> to complete payment securely.
+            </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => final > 0 && onConfirm(final, method)} disabled={!(final > 0)}>Confirm Deposit · ${final || 0}</Button>
+          <Button onClick={() => final > 0 && onConfirm(final, `Paystack · ${method}`)} disabled={!(final > 0)}>
+            Pay with Paystack · ${final || 0}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -382,23 +396,23 @@ function WithdrawModal({ open, onOpenChange, balance, currency, onConfirm }: { o
   );
 }
 
-function ConnectModal({ open, onOpenChange, brand, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; brand: "stripe" | "paypal" | "card" | "bank" | null; onConfirm: (label: string, sub: string) => void }) {
+function ConnectModal({ open, onOpenChange, brand, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; brand: PaystackChannel | null; onConfirm: (label: string, sub: string) => void }) {
   const [v1, setV1] = useState("");
   const [v2, setV2] = useState("");
   useEffect(() => { if (open) { setV1(""); setV2(""); } }, [open]);
   if (!brand) return null;
   const cfg = {
-    stripe: { title: "Connect Stripe", l1: "Stripe account email", l2: "Account ID (acct_…)", btn: "Connect Stripe", label: "Stripe", sub: (e: string) => `Account ${e || "linked"}` },
-    paypal: { title: "Connect PayPal", l1: "PayPal email", l2: "", btn: "Connect PayPal", label: "PayPal", sub: (e: string) => e ? e : "Account linked" },
-    card: { title: "Add Card", l1: "Card number", l2: "Cardholder name", btn: "Save Card", label: "Card", sub: (n: string) => `•• ${n.slice(-4) || "0000"}` },
-    bank: { title: "Add Bank Account", l1: "Account number", l2: "Routing / IBAN", btn: "Link Bank", label: "Bank", sub: (n: string) => `Acct ending ${n.slice(-4) || "0000"}` },
+    card: { title: "Add Card · Paystack", l1: "Card number", l2: "Cardholder name", btn: "Save Card", label: "Paystack Card", sub: (n: string) => `•• ${n.slice(-4) || "0000"}` },
+    bank: { title: "Link Bank · Paystack", l1: "Account number", l2: "Bank code / name", btn: "Link Bank", label: "Paystack Bank", sub: (n: string) => `Acct ending ${n.slice(-4) || "0000"}` },
+    ussd: { title: "Enable USSD · Paystack", l1: "Mobile number", l2: "", btn: "Enable USSD", label: "Paystack USSD", sub: (n: string) => n ? `Mobile ${n}` : "USSD enabled" },
+    transfer: { title: "Dedicated Account · Paystack", l1: "Full name", l2: "", btn: "Generate Account", label: "Paystack Transfer", sub: (n: string) => n ? `Account for ${n}` : "Transfer enabled" },
   }[brand];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{cfg.title}</DialogTitle>
-          <DialogDescription>Connect a payment method to your InstaGIG wallet.</DialogDescription>
+          <DialogDescription className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-primary" /> Secured by Paystack · your details never touch our servers.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
