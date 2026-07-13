@@ -341,20 +341,30 @@ function FundModal({ open, onOpenChange, onConfirm }: { open: boolean; onOpenCha
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Payment Method</label>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {[{ k: "Credit Card", i: CreditCard }, { k: "PayPal", i: WalletIcon }, { k: "Bank Transfer", i: Building2 }].map(({ k, i: I }) => (
+            <label className="text-xs font-semibold text-muted-foreground">Paystack Channel</label>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { k: "Card", i: CreditCard },
+                { k: "Bank", i: Landmark },
+                { k: "USSD", i: Hash },
+                { k: "Transfer", i: Building2 },
+              ].map(({ k, i: I }) => (
                 <button key={k} type="button" onClick={() => setMethod(k)}
                   className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${method === k ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"}`}>
                   <I className="h-3.5 w-3.5" />{k}
                 </button>
               ))}
             </div>
+            <div className="mt-3 flex items-center justify-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+              <Lock className="h-3 w-3 text-primary" /> You'll be redirected to <span className="font-semibold text-foreground">Paystack</span> to complete payment securely.
+            </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => final > 0 && onConfirm(final, method)} disabled={!(final > 0)}>Confirm Deposit · ${final || 0}</Button>
+          <Button onClick={() => final > 0 && onConfirm(final, `Paystack · ${method}`)} disabled={!(final > 0)}>
+            Pay with Paystack · ${final || 0}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
