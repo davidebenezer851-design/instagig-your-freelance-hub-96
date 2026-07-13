@@ -396,23 +396,23 @@ function WithdrawModal({ open, onOpenChange, balance, currency, onConfirm }: { o
   );
 }
 
-function ConnectModal({ open, onOpenChange, brand, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; brand: "stripe" | "paypal" | "card" | "bank" | null; onConfirm: (label: string, sub: string) => void }) {
+function ConnectModal({ open, onOpenChange, brand, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; brand: PaystackChannel | null; onConfirm: (label: string, sub: string) => void }) {
   const [v1, setV1] = useState("");
   const [v2, setV2] = useState("");
   useEffect(() => { if (open) { setV1(""); setV2(""); } }, [open]);
   if (!brand) return null;
   const cfg = {
-    stripe: { title: "Connect Stripe", l1: "Stripe account email", l2: "Account ID (acct_…)", btn: "Connect Stripe", label: "Stripe", sub: (e: string) => `Account ${e || "linked"}` },
-    paypal: { title: "Connect PayPal", l1: "PayPal email", l2: "", btn: "Connect PayPal", label: "PayPal", sub: (e: string) => e ? e : "Account linked" },
-    card: { title: "Add Card", l1: "Card number", l2: "Cardholder name", btn: "Save Card", label: "Card", sub: (n: string) => `•• ${n.slice(-4) || "0000"}` },
-    bank: { title: "Add Bank Account", l1: "Account number", l2: "Routing / IBAN", btn: "Link Bank", label: "Bank", sub: (n: string) => `Acct ending ${n.slice(-4) || "0000"}` },
+    card: { title: "Add Card · Paystack", l1: "Card number", l2: "Cardholder name", btn: "Save Card", label: "Paystack Card", sub: (n: string) => `•• ${n.slice(-4) || "0000"}` },
+    bank: { title: "Link Bank · Paystack", l1: "Account number", l2: "Bank code / name", btn: "Link Bank", label: "Paystack Bank", sub: (n: string) => `Acct ending ${n.slice(-4) || "0000"}` },
+    ussd: { title: "Enable USSD · Paystack", l1: "Mobile number", l2: "", btn: "Enable USSD", label: "Paystack USSD", sub: (n: string) => n ? `Mobile ${n}` : "USSD enabled" },
+    transfer: { title: "Dedicated Account · Paystack", l1: "Full name", l2: "", btn: "Generate Account", label: "Paystack Transfer", sub: (n: string) => n ? `Account for ${n}` : "Transfer enabled" },
   }[brand];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{cfg.title}</DialogTitle>
-          <DialogDescription>Connect a payment method to your InstaGIG wallet.</DialogDescription>
+          <DialogDescription className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-primary" /> Secured by Paystack · your details never touch our servers.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
