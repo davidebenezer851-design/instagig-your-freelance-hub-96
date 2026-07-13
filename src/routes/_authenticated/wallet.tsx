@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
-import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus, Smartphone, Landmark, Hash, Lock } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus, Landmark, Hash, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
