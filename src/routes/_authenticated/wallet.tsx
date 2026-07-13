@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
-import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus, Smartphone, Landmark, Hash, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
@@ -37,7 +37,8 @@ const UPGRADES: Record<string, { name: string; price: number; perks: string[] }>
   business: { name: "InstaGIG Business (monthly)", price: 49, perks: ["Team workspaces", "Custom invoices", "Dedicated manager"] },
 };
 
-type LinkedMethod = { id: string; brand: "stripe" | "paypal" | "card" | "bank"; label: string; sub: string };
+type PaystackChannel = "card" | "bank" | "ussd" | "transfer";
+type LinkedMethod = { id: string; brand: PaystackChannel; label: string; sub: string };
 
 function loadMethods(): LinkedMethod[] {
   if (typeof window === "undefined") return [];
@@ -52,7 +53,7 @@ function WalletPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [methods, setMethods] = useState<LinkedMethod[]>([]);
-  const [connectOpen, setConnectOpen] = useState<null | "stripe" | "paypal" | "card" | "bank">(null);
+  const [connectOpen, setConnectOpen] = useState<null | PaystackChannel>(null);
   const [confirm, setConfirm] = useState<{ amount: number; description: string } | null>(null);
 
   useEffect(() => { setMethods(loadMethods()); }, []);
@@ -115,20 +116,23 @@ function WalletPage() {
           </CardContent>
         </Card>
 
-        {/* Linked payment methods */}
+        {/* Paystack payment channels */}
         <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="font-display text-lg font-bold">Linked Payment Methods</h2>
-              <p className="text-xs text-muted-foreground">Connect a way to fund your wallet or get paid out.</p>
+              <h2 className="font-display text-lg font-bold">Payment Channels</h2>
+              <p className="text-xs text-muted-foreground">Everything runs through <span className="font-semibold text-primary">Paystack</span> — pick a channel to link.</p>
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
+              <Lock className="h-3 w-3" /> Secured by Paystack
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { k: "stripe" as const, name: "Stripe", desc: "Card payouts worldwide", icon: CreditCard },
-              { k: "paypal" as const, name: "PayPal", desc: "Send & receive in 200+ countries", icon: WalletIcon },
-              { k: "card" as const, name: "Debit / Credit Card", desc: "Top up instantly", icon: CreditCard },
-              { k: "bank" as const, name: "Bank Transfer", desc: "ACH / SEPA payouts", icon: Building2 },
+              { k: "card" as const, name: "Debit / Credit Card", desc: "Visa, Mastercard, Verve — instant.", icon: CreditCard },
+              { k: "bank" as const, name: "Bank Account", desc: "Direct debit from your bank.", icon: Landmark },
+              { k: "ussd" as const, name: "USSD", desc: "Pay from any phone, no data.", icon: Hash },
+              { k: "transfer" as const, name: "Bank Transfer", desc: "Dedicated Paystack account.", icon: Building2 },
             ].map((m) => {
               const linked = methods.find((x) => x.brand === m.k);
               return (
