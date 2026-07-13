@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +51,7 @@ function loadMethods(): LinkedMethod[] {
 
 function WalletPage() {
   const { balance, currency, transactions, mutate } = useWallet();
+  const { user } = useAuth();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [fundOpen, setFundOpen] = useState(false);
@@ -251,7 +253,7 @@ function WalletPage() {
         </section>
       </main>
 
-      <FundModal open={fundOpen} onOpenChange={setFundOpen} onConfirm={async (amt, method) => {
+      <FundModal open={fundOpen} onOpenChange={setFundOpen} userEmail={user?.email} onConfirm={async (amt, method) => {
         await mutate.mutateAsync({ amount: amt, type: "deposit", description: `Deposit via ${method}` });
         toast.success(`Funded ${formatMoney(amt, currency)} via ${method}`);
         setFundOpen(false);
@@ -318,11 +320,20 @@ function LedgerRow({ t, currency }: { t: WalletTx; currency: string }) {
   );
 }
 
-function FundModal({ open, onOpenChange, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; onConfirm: (amt: number, method: string) => void | Promise<void> }) {
+function FundModal({ open, onOpenChange, userEmail, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; userEmail?: string; onConfirm: (amt: number, method: string) => void | Promise<void> }) {
   const [amount, setAmount] = useState<number>(25);
   const [custom, setCustom] = useState("");
   const [method, setMethod] = useState("Credit Card");
   const final = custom ? Number(custom) : amount;
+  const config = useMemo(() => ({
+    publicKey: PAYSTACK_KEY,
+    email: userEmail ?? "",
+    amount: final * 100,
+    currency: "NGN",
+    reference: `instagig-${Date.now()}`,
+  }), [final, userEmail]);
+  const initializePayment = usePaystackPayment(config);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -365,7 +376,12 @@ function FundModal({ open, onOpenChange, onConfirm }: { open: boolean; onOpenCha
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => final > 0 && onConfirm(final, `Paystack · ${method}`)} disabled={!(final > 0)}>
+          <Button onClick={() => final > 0 && initializePayment({
+            onSuccess: async () => {
+              await onConfirm(final, `Paystack · ${method}`);
+            },
+            onClose: () => {},
+          })} disabled={!(final > 0)}>
             Pay with Paystack · ${final || 0}
           </Button>
         </DialogFooter>
