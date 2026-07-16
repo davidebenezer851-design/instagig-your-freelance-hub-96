@@ -35,7 +35,6 @@ import { Route as AuthenticatedFreelancerRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientRouteImport } from './routes/_authenticated/client'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
-import { Route as AuthenticatedWalletNewRouteImport } from './routes/_authenticated/wallet.new'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -166,11 +165,6 @@ const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedWalletNewRoute = AuthenticatedWalletNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthenticatedWalletRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -194,11 +188,10 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/wallet': typeof AuthenticatedWalletRouteWithChildren
+  '/wallet': typeof AuthenticatedWalletRoute
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
-  '/wallet/new': typeof AuthenticatedWalletNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -222,11 +215,10 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/wallet': typeof AuthenticatedWalletRouteWithChildren
+  '/wallet': typeof AuthenticatedWalletRoute
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
-  '/wallet/new': typeof AuthenticatedWalletNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -252,11 +244,10 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/saved': typeof AuthenticatedSavedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/wallet': typeof AuthenticatedWalletRouteWithChildren
+  '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
-  '/_authenticated/wallet/new': typeof AuthenticatedWalletNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -286,7 +277,6 @@ export interface FileRouteTypes {
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
-    | '/wallet/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -314,7 +304,6 @@ export interface FileRouteTypes {
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
-    | '/wallet/new'
   id:
     | '__root__'
     | '/'
@@ -343,7 +332,6 @@ export interface FileRouteTypes {
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
-    | '/_authenticated/wallet/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -544,26 +532,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/wallet/new': {
-      id: '/_authenticated/wallet/new'
-      path: '/new'
-      fullPath: '/wallet/new'
-      preLoaderRoute: typeof AuthenticatedWalletNewRouteImport
-      parentRoute: typeof AuthenticatedWalletRoute
-    }
   }
 }
-
-interface AuthenticatedWalletRouteChildren {
-  AuthenticatedWalletNewRoute: typeof AuthenticatedWalletNewRoute
-}
-
-const AuthenticatedWalletRouteChildren: AuthenticatedWalletRouteChildren = {
-  AuthenticatedWalletNewRoute: AuthenticatedWalletNewRoute,
-}
-
-const AuthenticatedWalletRouteWithChildren =
-  AuthenticatedWalletRoute._addFileChildren(AuthenticatedWalletRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
@@ -578,7 +548,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedWalletRoute: typeof AuthenticatedWalletRouteWithChildren
+  AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -594,7 +564,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedWalletRoute: AuthenticatedWalletRouteWithChildren,
+  AuthenticatedWalletRoute: AuthenticatedWalletRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

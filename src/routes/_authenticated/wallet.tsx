@@ -40,8 +40,8 @@ const UPGRADES: Record<string, { name: string; price: number; perks: string[] }>
 };
 
 function WalletPage() {
-  const { balance, currency, transactions, mutate } = useWallet();
-  const { user } = useAuth();
+  const { balance, currency, transactions, mutate, isLoading } = useWallet();
+  const { user, loading: authLoading } = useAuth();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [fundOpen, setFundOpen] = useState(false);
@@ -65,8 +65,12 @@ function WalletPage() {
 
   async function buy(item: { name: string; price: number }) {
     if (item.price > balance) { toast.error("Insufficient Balance — Please Fund Your Wallet"); setFundOpen(true); return; }
-    await mutate.mutateAsync({ amount: item.price, type: "purchase", description: item.name });
-    toast.success(`Purchased ${item.name}`);
+    try {
+      await mutate.mutateAsync({ amount: item.price, type: "purchase", description: item.name });
+      toast.success(`Purchased ${item.name}`);
+    } catch (error) {
+      toast.error((error as Error).message || "Unable to complete purchase right now.");
+    }
   }
 
   async function handleFundingRequest(amount: number, receiptUrl: string | null, note: string) {
@@ -90,6 +94,18 @@ function WalletPage() {
 
     toast.success("Transfer request submitted. We’ll review it and credit your wallet once approved.");
     setFundOpen(false);
+  }
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-20 text-center">
+        <div className="mx-auto max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <h1 className="font-display text-xl font-semibold">Loading wallet…</h1>
+          <p className="mt-2 text-sm text-muted-foreground">We’re preparing your wallet experience now.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
