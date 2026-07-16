@@ -30,14 +30,18 @@ async function sendWhatsAppNotification(request: Request, payload: WalletRequest
   const username = payload.username ?? payload.userEmail ?? "Guest";
   const email = payload.userEmail ?? "n/a";
   const userId = payload.userId ?? "n/a";
+  const note = payload.note?.trim() || "No note provided";
+  const receiptUrl = payload.receiptUrl?.trim() || "No receipt uploaded";
   const timestamp = new Date().toISOString();
   const adminUrl = buildAdminUrl(request, transactionId);
   const message = [
-    "New manual transfer request",
-    `User: ${username}`,
+    "New wallet funding request",
+    `Customer: ${username}`,
     `Email: ${email}`,
     `User ID: ${userId}`,
     `Amount: ${amount}`,
+    `Purpose: ${note}`,
+    `Receipt: ${receiptUrl}`,
     `Timestamp: ${timestamp}`,
     `Transaction ID: ${transactionId}`,
     `Review: ${adminUrl}`,

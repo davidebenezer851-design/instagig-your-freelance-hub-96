@@ -12,6 +12,7 @@ import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
 import { ArrowDownToLine, ArrowUpFromLine, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Banknote, Building2, BadgeCheck, UploadCloud, Loader2, Clock3, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { submitWalletFundingRequestFn } from "@/lib/wallet-submit.server";
 
 const searchSchema = z.object({
   upgrade: z.enum(["pro", "business"]).optional(),
@@ -74,26 +75,23 @@ function WalletPage() {
   }
 
   async function handleFundingRequest(amount: number, receiptUrl: string | null, note: string) {
-    const response = await fetch("/api/wallet/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount,
-        receiptUrl,
-        note,
-        userId: user?.id,
-        userEmail: user?.email,
-        username: user?.user_metadata?.full_name ?? user?.email ?? "Guest",
-      }),
-    });
+    try {
+      await submitWalletFundingRequestFn({
+        data: {
+          amount,
+          receiptUrl,
+          note,
+          userId: user?.id,
+          userEmail: user?.email,
+          username: user?.user_metadata?.full_name ?? user?.email ?? "Guest",
+        },
+      });
 
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error((json as { error?: string }).error ?? "We could not submit your funding request.");
+      toast.success("Transfer request submitted. We’ll review it and credit your wallet once approved.");
+      setFundOpen(false);
+    } catch (error) {
+      throw new Error((error as Error).message || "We could not submit your funding request.");
     }
-
-    toast.success("Transfer request submitted. We’ll review it and credit your wallet once approved.");
-    setFundOpen(false);
   }
 
   if (authLoading || isLoading) {
