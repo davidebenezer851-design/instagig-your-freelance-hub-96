@@ -348,19 +348,51 @@ function FundModal({ open, onOpenChange, userEmail, userName, onConfirm }: { ope
       let receiptUrl: string | null = null;
       if (receiptFile) {
         setIsUploading(true);
-        const safeName = `${Date.now()}-${receiptFile.name.replace(/\s+/g, "-")}`;
-        const path = `${userEmail ?? "anon"}/${safeName}`;
-        const { data, error } = await supabase.storage.from("wallet-receipts").upload(path, receiptFile, { upsert: false, contentType: receiptFile.type || "image/jpeg" });
-        if (error) throw error;
-        const { data: publicData } = supabase.storage.from("wallet-receipts").getPublicUrl(data.path);
-        receiptUrl = publicData.publicUrl;
+        try {
+          const safeName = `${Date.now()}-${receiptFile.name.replace(/\s+/g, "-")}`;
+          const path = `${userEmail ?? "anon"}/${safeName}`;
+          const buckets = ["wallet-receipts", "post-attachments"];
+          let lastError: unknown;
+
+          for (const bucket of buckets) {
+            try {
+              const { data, error } = await supabase.storage.from(bucket).upload(path, receiptFile, {
+                upsert: false,
+                contentType: receiptFile.type || "image/jpeg",
+                cacheControl: "3600",
+              });
+
+              if (error) {
+                lastError = error;
+                continue;
+              }
+
+              const { data: signedData, error: signedError } = await supabase.storage.from(bucket).createSignedUrl(data.path, 60 * 60 * 24 * 7);
+              if (signedError) {
+                lastError = signedError;
+                continue;
+              }
+
+              receiptUrl = signedData?.signedUrl ?? null;
+              break;
+            } catch (error) {
+              lastError = error;
+            }
+          }
+
+          if (!receiptUrl && lastError) {
+            console.warn("Receipt upload unavailable, continuing without it", lastError);
+            toast.warning("Receipt upload was unavailable, but your payment request was still submitted.");
+          }
+        } finally {
+          setIsUploading(false);
+        }
       }
       await onConfirm(final, receiptUrl, note.trim());
       onOpenChange(false);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
-      setIsUploading(false);
       setIsSubmitting(false);
     }
   }
