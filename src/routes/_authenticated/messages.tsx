@@ -89,6 +89,8 @@ function MessagesPage() {
   const qc = useQueryClient();
   const activeId = search.c;
   const optimisticReadRef = useRef(new Set<string>());
+  const activeIdRef = useRef<string | undefined>(activeId);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", user?.id],
