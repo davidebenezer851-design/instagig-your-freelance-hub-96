@@ -89,6 +89,8 @@ function MessagesPage() {
   const qc = useQueryClient();
   const activeId = search.c;
   const optimisticReadRef = useRef(new Set<string>());
+  const activeIdRef = useRef<string | undefined>(activeId);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
 
   const { data: conversations } = useQuery({
     queryKey: ["conversations", user?.id],
@@ -139,7 +141,32 @@ function MessagesPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
         qc.invalidateQueries({ queryKey: ["conversations", user.id] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new as { conversation_id?: string; sender_id?: string; body?: string | null; attachment_type?: string | null; created_at?: string; read_at?: string | null };
+        if (!m.conversation_id) return;
+        qc.setQueryData<Conv[]>(["conversations", user.id], (current) => {
+          if (!current) return current;
+          const idx = current.findIndex((c) => c.id === m.conversation_id);
+          if (idx === -1) return current;
+          const conv = current[idx];
+          const isMine = m.sender_id === user.id;
+          const isActive = activeIdRef.current === m.conversation_id;
+          const snippet = (m.body ?? "").trim() || (m.attachment_type?.startsWith("image/") ? "📷 Photo" : m.attachment_type?.startsWith("audio/") ? "🎤 Voice note" : m.attachment_type ? "📎 Attachment" : "");
+          const updated: Conv = {
+            ...conv,
+            last_message_at: m.created_at ?? conv.last_message_at,
+            preview: snippet || conv.preview,
+            unread: !isMine && !isActive && !m.read_at ? (conv.unread ?? 0) + 1 : (isActive ? 0 : conv.unread ?? 0),
+          };
+          const next = [updated, ...current.filter((_, i) => i !== idx)];
+          return next;
+        });
+        qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, () => {
+        qc.invalidateQueries({ queryKey: ["conversations", user.id] });
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, () => {
         qc.invalidateQueries({ queryKey: ["conversations", user.id] });
       })
       .subscribe();
