@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +43,30 @@ export function useWallet() {
       return (data ?? []).map((t) => ({ ...t, amount: Number(t.amount) })) as WalletTx[];
     },
   });
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase.channel(`wallet-live-${user.id}`);
+    channel
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "wallet_transactions", filter: `user_id=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["wallet", user.id] });
+        qc.invalidateQueries({ queryKey: ["wallet-tx", user.id] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallet_transactions", filter: `user_id=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["wallet", user.id] });
+        qc.invalidateQueries({ queryKey: ["wallet-tx", user.id] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["wallet", user.id] });
+        qc.invalidateQueries({ queryKey: ["wallet-tx", user.id] });
+      })
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [qc, user?.id]);
 
   const mutate = useMutation({
     mutationFn: async (input: { amount: number; type: WalletTx["type"]; description?: string; reference?: string }) => {

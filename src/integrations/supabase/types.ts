@@ -691,6 +691,8 @@ export type Database = {
           description: string | null
           id: string
           metadata: Json
+          note: string | null
+          receipt_url: string | null
           reference: string | null
           status: string
           type: string
@@ -702,6 +704,8 @@ export type Database = {
           description?: string | null
           id?: string
           metadata?: Json
+          note?: string | null
+          receipt_url?: string | null
           reference?: string | null
           status?: string
           type: string
@@ -713,6 +717,8 @@ export type Database = {
           description?: string | null
           id?: string
           metadata?: Json
+          note?: string | null
+          receipt_url?: string | null
           reference?: string | null
           status?: string
           type?: string

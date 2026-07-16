@@ -112,7 +112,7 @@ function LandingPage() {
             {[
               { icon: Briefcase, t: "Post or browse", d: "Clients post jobs, freelancers list gigs. Find the perfect match in minutes.", to: "/gigs" as const },
               { icon: MessageSquare, t: "Chat in real time", d: "WhatsApp-style messaging with emojis, attachments, voice notes, and camera.", to: "/messages" as const },
-              { icon: Zap, t: "Get paid fast", d: "Top up your wallet, pay for gigs, and withdraw instantly — all powered by Paystack.", to: "/wallet" as const },
+              { icon: Zap, t: "Get paid fast", d: "Top up your wallet, pay for gigs, and withdraw instantly through our secure manual transfer flow.", to: "/wallet" as const },
               { icon: FileText, t: "Invoices", d: "Send branded invoices, track paid/overdue, and bill clients in seconds.", to: "/invoicing" as const },
             ].map(({ icon: Icon, t, d, to }) => (
               <Link key={t} to={to} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary hover:bg-primary/5">

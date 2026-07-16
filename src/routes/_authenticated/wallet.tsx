@@ -1,4 +1,3 @@
-import { usePaystackPayment } from 'react-paystack';
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
@@ -10,10 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
-import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Building2, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Plus, Landmark, Hash, Lock } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Banknote, Building2, BadgeCheck, UploadCloud, Loader2, Clock3, Lock } from "lucide-react";
 import { toast } from "sonner";
-
-const PAYSTACK_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+import { supabase } from "@/integrations/supabase/client";
 
 const searchSchema = z.object({
   upgrade: z.enum(["pro", "business"]).optional(),
@@ -41,14 +39,6 @@ const UPGRADES: Record<string, { name: string; price: number; perks: string[] }>
   business: { name: "InstaGIG Business (monthly)", price: 49, perks: ["Team workspaces", "Custom invoices", "Dedicated manager"] },
 };
 
-type PaystackChannel = "card" | "bank" | "ussd" | "transfer";
-type LinkedMethod = { id: string; brand: PaystackChannel; label: string; sub: string };
-
-function loadMethods(): LinkedMethod[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem("instagig:methods") ?? "[]"); } catch { return []; }
-}
-
 function WalletPage() {
   const { balance, currency, transactions, mutate } = useWallet();
   const { user } = useAuth();
@@ -57,11 +47,8 @@ function WalletPage() {
   const [fundOpen, setFundOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [methods, setMethods] = useState<LinkedMethod[]>([]);
-  const [connectOpen, setConnectOpen] = useState<null | PaystackChannel>(null);
   const [confirm, setConfirm] = useState<{ amount: number; description: string } | null>(null);
 
-  useEffect(() => { setMethods(loadMethods()); }, []);
   useEffect(() => {
     if (search.upgrade && UPGRADES[search.upgrade]) {
       const u = UPGRADES[search.upgrade];
@@ -70,11 +57,6 @@ function WalletPage() {
       setConfirm({ amount: Number(search.price), description: `Order: ${search.title ?? "Gig"}` });
     }
   }, [search.upgrade, search.gig, search.price, search.title]);
-
-  function saveMethods(next: LinkedMethod[]) {
-    setMethods(next);
-    if (typeof window !== "undefined") localStorage.setItem("instagig:methods", JSON.stringify(next));
-  }
 
   const filtered = useMemo(
     () => transactions.filter((t) => `${t.type} ${t.description ?? ""} ${t.reference ?? ""}`.toLowerCase().includes(query.toLowerCase())),
@@ -87,6 +69,29 @@ function WalletPage() {
     toast.success(`Purchased ${item.name}`);
   }
 
+  async function handleFundingRequest(amount: number, receiptUrl: string | null, note: string) {
+    const response = await fetch("/api/wallet/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount,
+        receiptUrl,
+        note,
+        userId: user?.id,
+        userEmail: user?.email,
+        username: user?.user_metadata?.full_name ?? user?.email ?? "Guest",
+      }),
+    });
+
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error((json as { error?: string }).error ?? "We could not submit your funding request.");
+    }
+
+    toast.success("Transfer request submitted. We’ll review it and credit your wallet once approved.");
+    setFundOpen(false);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -94,12 +99,11 @@ function WalletPage() {
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="min-w-0">
             <h1 className="font-display text-2xl font-bold md:text-3xl">Wallet</h1>
-            <p className="text-sm text-muted-foreground">Fund your account, connect payout methods, and track every transaction.</p>
+            <p className="text-sm text-muted-foreground">Fund your account with a premium manual bank transfer flow and track approvals in real time.</p>
           </div>
           <Badge variant="secondary" className="gap-1 px-3 py-1.5 text-sm"><WalletIcon className="h-3.5 w-3.5" /> {currency}</Badge>
         </header>
 
-        {/* Balance card */}
         <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-br from-card via-card to-primary/10 shadow-[var(--shadow-glow)]">
           <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-primary/30 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
@@ -109,63 +113,70 @@ function WalletPage() {
                 <WalletIcon className="h-3.5 w-3.5" /> Available Balance
               </div>
               <div className="mt-2 font-display text-4xl font-black tabular-nums text-foreground md:text-6xl">{formatMoney(balance, currency)}</div>
-              <div className="mt-1 text-xs text-muted-foreground">InstaGIG Wallet · Instant settlement</div>
+              <div className="mt-1 text-xs text-muted-foreground">InstaGIG Wallet · Manual transfer approvals</div>
             </div>
             <div className="flex flex-col gap-2 self-end md:items-end">
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => setFundOpen(true)} className="font-semibold"><ArrowDownToLine className="h-4 w-4" /> Fund Account</Button>
                 <Button onClick={() => setWithdrawOpen(true)} variant="secondary"><ArrowUpFromLine className="h-4 w-4" /> Withdraw</Button>
               </div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">•• 4242 · InstaGIG Lemon</div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Moniepoint · Instant review</div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Paystack payment channels */}
         <section>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="font-display text-lg font-bold">Payment Channels</h2>
-              <p className="text-xs text-muted-foreground">Everything runs through <span className="font-semibold text-primary">Paystack</span> — pick a channel to link.</p>
+              <h2 className="font-display text-lg font-bold">Manual Bank Transfer</h2>
+              <p className="text-xs text-muted-foreground">Transfer to our Moniepoint account, upload proof, and your wallet will be credited once approved.</p>
             </div>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-              <Lock className="h-3 w-3" /> Secured by Paystack
+              <Lock className="h-3 w-3" /> Secure review flow
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { k: "card" as const, name: "Debit / Credit Card", desc: "Visa, Mastercard, Verve — instant.", icon: CreditCard },
-              { k: "bank" as const, name: "Bank Account", desc: "Direct debit from your bank.", icon: Landmark },
-              { k: "ussd" as const, name: "USSD", desc: "Pay from any phone, no data.", icon: Hash },
-              { k: "transfer" as const, name: "Bank Transfer", desc: "Dedicated Paystack account.", icon: Building2 },
-            ].map((m) => {
-              const linked = methods.find((x) => x.brand === m.k);
-              return (
-                <Card key={m.k} className="flex flex-col">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/15 text-primary"><m.icon className="h-4 w-4" /></div>
-                      <CardTitle className="text-base">{m.name}</CardTitle>
+
+          <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-card via-card to-primary/10">
+            <CardContent className="grid gap-4 p-5 md:grid-cols-[1.1fr_0.9fr] md:p-6">
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-white/10 bg-background/70 p-4 backdrop-blur">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Banknote className="h-4 w-4 text-primary" /> Transfer details
+                  </div>
+                  <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                      <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Bank Name</span>
+                      <span className="font-semibold text-foreground">Moniepoint</span>
                     </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-1 flex-col justify-between gap-3">
-                    <p className="text-xs text-muted-foreground">{linked ? linked.sub : m.desc}</p>
-                    {linked ? (
-                      <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><Check className="h-3.5 w-3.5" /> Connected</span>
-                        <Button size="sm" variant="ghost" onClick={() => saveMethods(methods.filter((x) => x.id !== linked.id))}>Disconnect</Button>
-                      </div>
-                    ) : (
-                      <Button size="sm" variant="secondary" onClick={() => setConnectOpen(m.k)}><Plus className="h-3.5 w-3.5" /> Connect</Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                      <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Account Number</span>
+                      <span className="font-semibold text-foreground">9032743676</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                      <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Account Name</span>
+                      <span className="font-semibold text-foreground">GEORGE ETOHWO</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 font-semibold text-foreground"><BadgeCheck className="h-4 w-4 text-primary" /> Fast review</div>
+                  <p className="mt-2">Use the form below to submit the exact amount you transferred. We’ll notify you the moment the deposit is approved.</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-primary/20 bg-background/70 p-4 shadow-sm backdrop-blur">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Building2 className="h-4 w-4 text-primary" /> Why it feels premium</div>
+                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-primary" />Lovely glassmorphism interface with polished interactions.</li>
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-primary" />Receipt upload is stored securely in Supabase storage.</li>
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-primary" />Approval requests are routed to a dedicated admin review page.</li>
+                </ul>
+                <Button onClick={() => setFundOpen(true)} className="mt-4 w-full"><ArrowDownToLine className="mr-2 h-4 w-4" /> Start transfer</Button>
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
-        {/* Upgrade plans */}
         <section>
           <h2 className="mb-3 font-display text-lg font-bold">Upgrade your plan</h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -193,7 +204,6 @@ function WalletPage() {
           </div>
         </section>
 
-        {/* Sandbox */}
         <section>
           <h2 className="mb-3 font-display text-lg font-bold">Purchase Sandbox</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -219,7 +229,6 @@ function WalletPage() {
           </div>
         </section>
 
-        {/* Ledger */}
         <section>
           <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:items-center sm:justify-between">
             <h2 className="truncate font-display text-lg font-bold">Transaction Ledger</h2>
@@ -253,24 +262,13 @@ function WalletPage() {
         </section>
       </main>
 
-      <FundModal open={fundOpen} onOpenChange={setFundOpen} userEmail={user?.email} onConfirm={async (amt, method) => {
-        await mutate.mutateAsync({ amount: amt, type: "deposit", description: `Deposit via ${method}` });
-        toast.success(`Funded ${formatMoney(amt, currency)} via ${method}`);
-        setFundOpen(false);
-      }} />
+      <FundModal open={fundOpen} onOpenChange={setFundOpen} userEmail={user?.email} userName={user?.user_metadata?.full_name ?? user?.email ?? "Guest"} onConfirm={handleFundingRequest} />
       <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} balance={balance} currency={currency} onConfirm={async (amt) => {
         try {
           await mutate.mutateAsync({ amount: amt, type: "withdrawal", description: "Payout to bank" });
           toast.success(`Withdrawal of ${formatMoney(amt, currency)} requested`);
           setWithdrawOpen(false);
         } catch (e) { toast.error((e as Error).message); }
-      }} />
-
-      <ConnectModal open={!!connectOpen} onOpenChange={(o) => !o && setConnectOpen(null)} brand={connectOpen} onConfirm={(label, sub) => {
-        if (!connectOpen) return;
-        saveMethods([...methods, { id: crypto.randomUUID(), brand: connectOpen, label, sub }]);
-        toast.success(`${label} connected`);
-        setConnectOpen(null);
       }} />
 
       <Dialog open={!!confirm} onOpenChange={(o) => { if (!o) { setConfirm(null); navigate({ search: {} }); } }}>
@@ -320,69 +318,106 @@ function LedgerRow({ t, currency }: { t: WalletTx; currency: string }) {
   );
 }
 
-function FundModal({ open, onOpenChange, userEmail, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; userEmail?: string; onConfirm: (amt: number, method: string) => void | Promise<void> }) {
+function FundModal({ open, onOpenChange, userEmail, userName, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; userEmail?: string; userName?: string; onConfirm: (amt: number, receiptUrl: string | null, note: string) => void | Promise<void> }) {
   const [amount, setAmount] = useState<number>(25);
   const [custom, setCustom] = useState("");
-  const [method, setMethod] = useState("Credit Card");
+  const [note, setNote] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const final = custom ? Number(custom) : amount;
-  const config = useMemo(() => ({
-    publicKey: PAYSTACK_KEY,
-    email: userEmail ?? "",
-    amount: final * 100,
-    currency: "NGN",
-    reference: `instagig-${Date.now()}`,
-  }), [final, userEmail]);
-  const initializePayment = usePaystackPayment(config);
+
+  async function handleSubmit() {
+    if (!final || final <= 0) return;
+    setIsSubmitting(true);
+    try {
+      let receiptUrl: string | null = null;
+      if (receiptFile) {
+        setIsUploading(true);
+        const safeName = `${Date.now()}-${receiptFile.name.replace(/\s+/g, "-")}`;
+        const path = `${userEmail ?? "anon"}/${safeName}`;
+        const { data, error } = await supabase.storage.from("wallet-receipts").upload(path, receiptFile, { upsert: false, contentType: receiptFile.type || "image/jpeg" });
+        if (error) throw error;
+        const { data: publicData } = supabase.storage.from("wallet-receipts").getPublicUrl(data.path);
+        receiptUrl = publicData.publicUrl;
+      }
+      await onConfirm(final, receiptUrl, note.trim());
+      onOpenChange(false);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsUploading(false);
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4 text-primary" /> Fund Account</DialogTitle>
-          <DialogDescription>Add credit to your InstaGIG wallet.</DialogDescription>
+          <DialogDescription>Make a manual bank transfer to our Moniepoint account and submit proof for approval.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-background p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Banknote className="h-4 w-4 text-primary" /> Transfer details</div>
+            <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Bank</div>
+                <div className="mt-1 font-semibold text-foreground">Moniepoint</div>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Account</div>
+                <div className="mt-1 font-semibold text-foreground">9032743676</div>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
+                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Name</div>
+                <div className="mt-1 font-semibold text-foreground">GEORGE ETOHWO</div>
+              </div>
+            </div>
+          </div>
+
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Quick Amount</label>
+            <label className="text-xs font-semibold text-muted-foreground">Amount transferred</label>
             <div className="mt-2 grid grid-cols-4 gap-2">
               {PRESETS.map((p) => (
-                <button key={p} type="button" onClick={() => { setAmount(p); setCustom(""); }}
-                  className={`rounded-lg border px-3 py-2 text-sm font-semibold tabular-nums transition ${!custom && amount === p ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"}`}>
+                <button key={p} type="button" onClick={() => { setAmount(p); setCustom(""); }} className={`rounded-lg border px-3 py-2 text-sm font-semibold tabular-nums transition ${!custom && amount === p ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"}`}>
                   ${p}
                 </button>
               ))}
               <Input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ""))} placeholder="Custom" inputMode="decimal" />
             </div>
           </div>
+
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Paystack Channel</label>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { k: "Card", i: CreditCard },
-                { k: "Bank", i: Landmark },
-                { k: "USSD", i: Hash },
-                { k: "Transfer", i: Building2 },
-              ].map(({ k, i: I }) => (
-                <button key={k} type="button" onClick={() => setMethod(k)}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition ${method === k ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"}`}>
-                  <I className="h-3.5 w-3.5" />{k}
-                </button>
-              ))}
-            </div>
-            <div className="mt-3 flex items-center justify-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
-              <Lock className="h-3 w-3 text-primary" /> You'll be redirected to <span className="font-semibold text-foreground">Paystack</span> to complete payment securely.
+            <label className="text-xs font-semibold text-muted-foreground">Receipt proof (optional)</label>
+            <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-background/70 px-4 py-6 text-center transition hover:border-primary/60">
+              <UploadCloud className="h-6 w-6 text-primary" />
+              <span className="mt-2 text-sm font-medium text-foreground">{receiptFile ? receiptFile.name : "Upload image receipt"}</span>
+              <span className="mt-1 text-xs text-muted-foreground">PNG, JPG, or WEBP</span>
+              <input type="file" accept="image/*" className="sr-only" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
+            </label>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground">Note to admin</label>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={`Hello, I transferred ${final || 0} to your Moniepoint account.`} className="mt-2 min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none ring-0" />
+          </div>
+
+          <div className="rounded-xl border border-border/60 bg-background/80 p-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-foreground"><Clock3 className="h-4 w-4 text-primary" /> Review window</div>
+            <p className="mt-2">Your request will appear as pending until an admin approves it. A WhatsApp notification will be sent with an approval link.</p>
+            <div className="mt-3 flex items-center justify-between text-xs">
+              <span>Recipient</span>
+              <span className="font-semibold text-foreground">{userName ?? userEmail ?? "You"}</span>
             </div>
           </div>
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => final > 0 && initializePayment({
-            onSuccess: async () => {
-              await onConfirm(final, `Paystack · ${method}`);
-            },
-            onClose: () => {},
-          })} disabled={!(final > 0)}>
-            Pay with Paystack · ${final || 0}
+          <Button onClick={handleSubmit} disabled={!(final > 0) || isSubmitting || isUploading}>
+            {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading receipt</> : isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting</> : `Submit payment · $${final || 0}`}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -409,45 +444,6 @@ function WithdrawModal({ open, onOpenChange, balance, currency, onConfirm }: { o
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={() => n > 0 && !over && onConfirm(n)} disabled={!(n > 0) || over}>Withdraw</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ConnectModal({ open, onOpenChange, brand, onConfirm }: { open: boolean; onOpenChange: (b: boolean) => void; brand: PaystackChannel | null; onConfirm: (label: string, sub: string) => void }) {
-  const [v1, setV1] = useState("");
-  const [v2, setV2] = useState("");
-  useEffect(() => { if (open) { setV1(""); setV2(""); } }, [open]);
-  if (!brand) return null;
-  const cfg = {
-    card: { title: "Add Card · Paystack", l1: "Card number", l2: "Cardholder name", btn: "Save Card", label: "Paystack Card", sub: (n: string) => `•• ${n.slice(-4) || "0000"}` },
-    bank: { title: "Link Bank · Paystack", l1: "Account number", l2: "Bank code / name", btn: "Link Bank", label: "Paystack Bank", sub: (n: string) => `Acct ending ${n.slice(-4) || "0000"}` },
-    ussd: { title: "Enable USSD · Paystack", l1: "Mobile number", l2: "", btn: "Enable USSD", label: "Paystack USSD", sub: (n: string) => n ? `Mobile ${n}` : "USSD enabled" },
-    transfer: { title: "Dedicated Account · Paystack", l1: "Full name", l2: "", btn: "Generate Account", label: "Paystack Transfer", sub: (n: string) => n ? `Account for ${n}` : "Transfer enabled" },
-  }[brand];
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{cfg.title}</DialogTitle>
-          <DialogDescription className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-primary" /> Secured by Paystack · your details never touch our servers.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground">{cfg.l1}</label>
-            <Input value={v1} onChange={(e) => setV1(e.target.value)} className="mt-1" />
-          </div>
-          {cfg.l2 && (
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">{cfg.l2}</label>
-              <Input value={v2} onChange={(e) => setV2(e.target.value)} className="mt-1" />
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={!v1} onClick={() => onConfirm(cfg.label, cfg.sub(v1))}>{cfg.btn}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
