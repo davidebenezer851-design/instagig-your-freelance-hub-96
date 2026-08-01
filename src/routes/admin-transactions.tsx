@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Loader2, CheckCircle2, XCircle, ShieldCheck, ArrowLeft } from "lucide-r
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin-transactions")({
+  validateSearch: z.object({ tx: z.string().optional() }),
   head: () => ({ meta: [{ title: "Admin Transactions — InstaGIG" }] }),
   component: AdminTransactionsPage,
 });

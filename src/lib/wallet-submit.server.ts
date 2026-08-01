@@ -3,7 +3,9 @@ import { submitWalletFundingRequest, type WalletRequestPayload } from "./wallet-
 
 export const submitWalletFundingRequestFn = createServerFn({
   method: "POST",
-}).handler(async ({ data }) => {
+})
+  .inputValidator((input: WalletRequestPayload) => input)
+  .handler(async ({ data }) => {
   const payload = (data ?? {}) as WalletRequestPayload;
   const origin = process.env.APP_URL ?? process.env.VITE_APP_URL ?? "https://instagig.app";
   return submitWalletFundingRequest(new Request(origin), payload);
