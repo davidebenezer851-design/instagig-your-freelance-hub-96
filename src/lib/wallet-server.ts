@@ -105,8 +105,7 @@ export async function submitWalletFundingRequest(request: Request, payload: Wall
     status: "pending",
     reference,
     description: note,
-    receipt_url: receiptUrl,
-    note,
+    metadata: { receipt_url: receiptUrl, note },
   }).select("id,amount,status,reference,created_at").single();
 
   if (error) throw error;
@@ -125,7 +124,7 @@ export async function listPendingTransactionsForAdmin(userId: string | null) {
   }
 
   const { data, error } = await supabaseAdmin.from("wallet_transactions")
-    .select("id,amount,type,status,reference,description,note,receipt_url,created_at,user_id")
+    .select("id,amount,type,status,reference,description,metadata,created_at,user_id")
     .eq("status", "pending")
     .order("created_at", { ascending: false });
 
@@ -182,7 +181,7 @@ export async function declineWalletTransaction(transactionId: string, userId: st
     throw new Error("Unauthorized");
   }
 
-  const { error } = await supabaseAdmin.from("wallet_transactions").update({ status: "declined" }).eq("id", transactionId);
+  const { error } = await supabaseAdmin.from("wallet_transactions").update({ status: "failed" }).eq("id", transactionId);
   if (error) throw error;
   return { ok: true };
 }
