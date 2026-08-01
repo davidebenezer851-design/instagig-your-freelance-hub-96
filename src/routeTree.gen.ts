@@ -36,6 +36,8 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedClientRouteImport } from './routes/_authenticated/client'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
 import { Route as ApiWalletSubmitRouteImport } from './routes/api/wallet/submit'
+import { Route as ApiAdminTransactionsRouteImport } from './routes/api/admin/transactions'
+import { Route as ApiAdminTransactionsIdActionRouteImport } from './routes/api/admin/transactions/$id/$action'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -171,6 +173,17 @@ const ApiWalletSubmitRoute = ApiWalletSubmitRouteImport.update({
   path: '/api/wallet/submit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminTransactionsRoute = ApiAdminTransactionsRouteImport.update({
+  id: '/api/admin/transactions',
+  path: '/api/admin/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminTransactionsIdActionRoute =
+  ApiAdminTransactionsIdActionRouteImport.update({
+    id: '/$id/$action',
+    path: '/$id/$action',
+    getParentRoute: () => ApiAdminTransactionsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -198,7 +211,9 @@ export interface FileRoutesByFullPath {
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/admin/transactions': typeof ApiAdminTransactionsRouteWithChildren
   '/api/wallet/submit': typeof ApiWalletSubmitRoute
+  '/api/admin/transactions/$id/$action': typeof ApiAdminTransactionsIdActionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -226,7 +241,9 @@ export interface FileRoutesByTo {
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/admin/transactions': typeof ApiAdminTransactionsRouteWithChildren
   '/api/wallet/submit': typeof ApiWalletSubmitRoute
+  '/api/admin/transactions/$id/$action': typeof ApiAdminTransactionsIdActionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -256,7 +273,9 @@ export interface FileRoutesById {
   '/gigs/$id': typeof GigsIdRoute
   '/jobs/$id': typeof JobsIdRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/admin/transactions': typeof ApiAdminTransactionsRouteWithChildren
   '/api/wallet/submit': typeof ApiWalletSubmitRoute
+  '/api/admin/transactions/$id/$action': typeof ApiAdminTransactionsIdActionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -286,7 +305,9 @@ export interface FileRouteTypes {
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
+    | '/api/admin/transactions'
     | '/api/wallet/submit'
+    | '/api/admin/transactions/$id/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -314,7 +335,9 @@ export interface FileRouteTypes {
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
+    | '/api/admin/transactions'
     | '/api/wallet/submit'
+    | '/api/admin/transactions/$id/$action'
   id:
     | '__root__'
     | '/'
@@ -343,7 +366,9 @@ export interface FileRouteTypes {
     | '/gigs/$id'
     | '/jobs/$id'
     | '/profile/$id'
+    | '/api/admin/transactions'
     | '/api/wallet/submit'
+    | '/api/admin/transactions/$id/$action'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -358,6 +383,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ProfileIdRoute: typeof ProfileIdRoute
+  ApiAdminTransactionsRoute: typeof ApiAdminTransactionsRouteWithChildren
   ApiWalletSubmitRoute: typeof ApiWalletSubmitRoute
 }
 
@@ -552,6 +578,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWalletSubmitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/transactions': {
+      id: '/api/admin/transactions'
+      path: '/api/admin/transactions'
+      fullPath: '/api/admin/transactions'
+      preLoaderRoute: typeof ApiAdminTransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/transactions/$id/$action': {
+      id: '/api/admin/transactions/$id/$action'
+      path: '/$id/$action'
+      fullPath: '/api/admin/transactions/$id/$action'
+      preLoaderRoute: typeof ApiAdminTransactionsIdActionRouteImport
+      parentRoute: typeof ApiAdminTransactionsRoute
+    }
   }
 }
 
@@ -610,6 +650,17 @@ const JobsRouteChildren: JobsRouteChildren = {
 
 const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
 
+interface ApiAdminTransactionsRouteChildren {
+  ApiAdminTransactionsIdActionRoute: typeof ApiAdminTransactionsIdActionRoute
+}
+
+const ApiAdminTransactionsRouteChildren: ApiAdminTransactionsRouteChildren = {
+  ApiAdminTransactionsIdActionRoute: ApiAdminTransactionsIdActionRoute,
+}
+
+const ApiAdminTransactionsRouteWithChildren =
+  ApiAdminTransactionsRoute._addFileChildren(ApiAdminTransactionsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -622,6 +673,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ProfileIdRoute: ProfileIdRoute,
+  ApiAdminTransactionsRoute: ApiAdminTransactionsRouteWithChildren,
   ApiWalletSubmitRoute: ApiWalletSubmitRoute,
 }
 export const routeTree = rootRouteImport
