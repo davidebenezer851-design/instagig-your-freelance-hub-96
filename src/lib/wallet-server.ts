@@ -96,6 +96,8 @@ export async function submitWalletFundingRequest(request: Request, payload: Wall
   const note = payload.note?.trim() || "Manual bank transfer request";
   const receiptUrl = payload.receiptUrl ?? null;
 
+  if (!userId) throw new Error("Authentication required");
+
   const { data, error } = await supabaseAdmin.from("wallet_transactions").insert({
     user_id: userId,
     amount,
@@ -105,7 +107,7 @@ export async function submitWalletFundingRequest(request: Request, payload: Wall
     description: note,
     receipt_url: receiptUrl,
     note,
-  } as Record<string, unknown>).select("id,amount,status,reference,created_at").single();
+  }).select("id,amount,status,reference,created_at").single();
 
   if (error) throw error;
 
@@ -139,9 +141,37 @@ export async function approveWalletTransaction(transactionId: string, userId: st
     throw new Error("Unauthorized");
   }
 
-  const { data, error } = await supabaseAdmin.rpc("approve_wallet_transaction", { transaction_id: transactionId });
-  if (error) throw error;
-  return data;
+  const { data: tx, error: txErr } = await supabaseAdmin
+    .from("wallet_transactions")
+    .select("id,user_id,amount,status")
+    .eq("id", transactionId)
+    .single();
+  if (txErr) throw txErr;
+  if (tx.status !== "pending") return { ok: true, alreadyProcessed: true };
+
+  const { data: wallet } = await supabaseAdmin
+    .from("wallets")
+    .select("user_id,balance")
+    .eq("user_id", tx.user_id)
+    .maybeSingle();
+
+  const nextBalance = Number(wallet?.balance ?? 0) + Number(tx.amount);
+
+  if (wallet) {
+    const { error: wErr } = await supabaseAdmin.from("wallets").update({ balance: nextBalance }).eq("user_id", tx.user_id);
+    if (wErr) throw wErr;
+  } else {
+    const { error: wErr } = await supabaseAdmin.from("wallets").insert({ user_id: tx.user_id, balance: nextBalance });
+    if (wErr) throw wErr;
+  }
+
+  const { error: updErr } = await supabaseAdmin
+    .from("wallet_transactions")
+    .update({ status: "completed" })
+    .eq("id", transactionId);
+  if (updErr) throw updErr;
+
+  return { ok: true, balance: nextBalance };
 }
 
 export async function declineWalletTransaction(transactionId: string, userId: string | null) {
