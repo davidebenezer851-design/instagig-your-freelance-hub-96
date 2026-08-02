@@ -819,11 +819,21 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
             <input ref={camInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onPickImage(e.target.files)} />
             <textarea
               value={body}
-              onChange={(e) => { setBody(e.target.value); broadcastTyping(); }}
+              ref={(el) => {
+                if (!el) return;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              onChange={(e) => {
+                setBody(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+                broadcastTyping();
+              }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !isMobile) { e.preventDefault(); send(); } }}
               placeholder="Type a message"
               rows={1}
-              className="max-h-32 min-h-9 min-w-0 resize-none bg-transparent px-1 py-2 text-sm outline-none sm:px-2"
+              className="min-h-9 min-w-0 resize-none overflow-hidden bg-transparent px-1 py-2 text-sm outline-none sm:px-2"
             />
             {body.trim() || pending.length ? (
               <Button type="submit" size="icon" className="h-9 w-9 shrink-0 rounded-full" disabled={sending}>
