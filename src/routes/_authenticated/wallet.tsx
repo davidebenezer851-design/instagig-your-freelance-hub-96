@@ -422,44 +422,32 @@ function FundModal({ open, onOpenChange, userEmail, userName, onConfirm }: { ope
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-primary/20 bg-card/90 backdrop-blur-xl sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4 text-primary" /> Fund Account</DialogTitle>
-          <DialogDescription>Make a manual bank transfer to our Moniepoint account and submit proof for approval.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4 text-primary" /> Fund account</DialogTitle>
+          <DialogDescription>Transfer to the account below, then submit your proof for approval.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-background p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Banknote className="h-4 w-4 text-primary" /> Transfer details</div>
-            <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
-              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Bank</div>
-                <div className="mt-1 font-semibold text-foreground">Moniepoint</div>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Account</div>
-                <div className="mt-1 font-semibold text-foreground">9032743676</div>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Name</div>
-                <div className="mt-1 font-semibold text-foreground">GEORGE ETOHWO</div>
-              </div>
-            </div>
+        <div className="space-y-5">
+          <div className="grid gap-2 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent p-3">
+            <CopyRow label="Bank" value="Moniepoint" />
+            <CopyRow label="Account number" value="9032743676" mono />
+            <CopyRow label="Account name" value="GEORGE ETOHWO" />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Amount transferred</label>
-            <div className="mt-2 grid grid-cols-4 gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Amount transferred</label>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {PRESETS.map((p) => (
-                <button key={p} type="button" onClick={() => { setAmount(p); setCustom(""); }} className={`rounded-lg border px-3 py-2 text-sm font-semibold tabular-nums transition ${!custom && amount === p ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"}`}>
+                <button key={p} type="button" onClick={() => { setAmount(p); setCustom(""); }} className={`rounded-xl border px-3 py-2.5 text-sm font-semibold tabular-nums transition ${!custom && amount === p ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/40 hover:bg-primary/5"}`}>
                   ${p}
                 </button>
               ))}
-              <Input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ""))} placeholder="Custom" inputMode="decimal" />
+              <Input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ""))} placeholder="Custom" inputMode="decimal" className="h-auto rounded-xl" />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Receipt proof (optional)</label>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Receipt proof</label>
             <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-background/70 px-4 py-6 text-center transition hover:border-primary/60">
               <UploadCloud className="h-6 w-6 text-primary" />
               <span className="mt-2 text-sm font-medium text-foreground">{receiptFile ? receiptFile.name : "Upload image receipt"}</span>
@@ -469,23 +457,28 @@ function FundModal({ open, onOpenChange, userEmail, userName, onConfirm }: { ope
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Note to admin</label>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={`Hello, I transferred ${final || 0} to your Moniepoint account.`} className="mt-2 min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none ring-0" />
+            <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Note to admin</label>
+            <textarea
+              value={note}
+              onChange={(e) => { setNote(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${e.target.scrollHeight}px`; }}
+              placeholder={`Hello, I transferred ${final || 0} to your Moniepoint account.`}
+              className="mt-2 min-h-20 w-full resize-none overflow-hidden rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm outline-none transition focus:border-primary/60"
+            />
           </div>
 
-          <div className="rounded-xl border border-border/60 bg-background/80 p-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 text-foreground"><Clock3 className="h-4 w-4 text-primary" /> Review window</div>
-            <p className="mt-2">Your request will appear as pending until an admin approves it. A WhatsApp notification will be sent with an approval link.</p>
+          <div className="rounded-2xl border border-border/60 bg-background/60 p-3.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 font-medium text-foreground"><Clock3 className="h-4 w-4 text-primary" /> What happens next</div>
+            <p className="mt-2 text-xs leading-relaxed">Your request goes to pending and the receipt plus your details are sent to our WhatsApp line for review. You’ll be credited once approved.</p>
             <div className="mt-3 flex items-center justify-between text-xs">
-              <span>Recipient</span>
+              <span>Requested by</span>
               <span className="font-semibold text-foreground">{userName ?? userEmail ?? "You"}</span>
             </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!(final > 0) || isSubmitting || isUploading}>
+          <Button onClick={handleSubmit} disabled={!(final > 0) || isSubmitting || isUploading} className="rounded-xl font-semibold">
             {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading receipt</> : isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting</> : `Submit payment · $${final || 0}`}
           </Button>
         </DialogFooter>
