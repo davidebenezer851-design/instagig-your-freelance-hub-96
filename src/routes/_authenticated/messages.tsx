@@ -82,7 +82,6 @@ function dayLabel(iso: string): string {
   return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", year: dd.getFullYear() === today.getFullYear() ? undefined : "numeric" });
 }
 
-function MessagesPage() {
 function listStamp(iso: string): string {
   const d = new Date(iso);
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -95,6 +94,7 @@ function listStamp(iso: string): string {
   return d.toLocaleDateString([], { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
+function MessagesPage() {
   const { user } = useAuth();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
