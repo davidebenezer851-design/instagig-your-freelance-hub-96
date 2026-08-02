@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
-import { ArrowDownToLine, ArrowUpFromLine, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Banknote, Building2, BadgeCheck, UploadCloud, Loader2, Clock3, Lock } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Banknote, UploadCloud, Loader2, Clock3, Lock, Copy, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { submitWalletFundingRequestFn } from "@/lib/wallet-submit.server";
