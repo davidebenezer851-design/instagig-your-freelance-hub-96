@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
-import { ArrowDownToLine, ArrowUpFromLine, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Banknote, Building2, BadgeCheck, UploadCloud, Loader2, Clock3, Lock } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Banknote, UploadCloud, Loader2, Clock3, Lock, Copy, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { submitWalletFundingRequestFn } from "@/lib/wallet-submit.server";
@@ -89,6 +89,19 @@ function WalletPage() {
 
       toast.success("Transfer request submitted. We’ll review it and credit your wallet once approved.");
       setFundOpen(false);
+
+      // Hand the proof off to the admin WhatsApp line
+      const lines = [
+        "New wallet funding request",
+        `Customer: ${user?.user_metadata?.full_name ?? user?.email ?? "Guest"}`,
+        `Email: ${user?.email ?? "n/a"}`,
+        `Amount: ${formatMoney(amount, currency)}`,
+        `Note: ${note || "—"}`,
+        `Receipt: ${receiptUrl ?? "not uploaded"}`,
+        `Time: ${new Date().toLocaleString()}`,
+      ].join("\n");
+      const waUrl = `https://wa.me/2349032743676?text=${encodeURIComponent(lines)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       throw new Error((error as Error).message || "We could not submit your funding request.");
     }
@@ -109,87 +122,64 @@ function WalletPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 md:px-6 md:py-10">
-        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-6 md:px-6 md:py-10">
+        <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">InstaGIG</p>
             <h1 className="font-display text-2xl font-bold md:text-3xl">Wallet</h1>
-            <p className="text-sm text-muted-foreground">Fund your account with a premium manual bank transfer flow and track approvals in real time.</p>
           </div>
-          <Badge variant="secondary" className="gap-1 px-3 py-1.5 text-sm"><WalletIcon className="h-3.5 w-3.5" /> {currency}</Badge>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
+              <Lock className="h-3 w-3" /> Secure review
+            </span>
+            <Badge variant="secondary" className="gap-1 px-3 py-1.5 text-sm"><WalletIcon className="h-3.5 w-3.5" /> {currency}</Badge>
+          </div>
         </header>
 
-        <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-br from-card via-card to-primary/10 shadow-[var(--shadow-glow)]">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-primary/30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
-          <CardContent className="relative grid gap-6 p-6 md:grid-cols-[1fr_auto] md:p-8">
-            <div>
-              <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-                <WalletIcon className="h-3.5 w-3.5" /> Available Balance
+        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <Card className="relative isolate overflow-hidden border-primary/25 bg-[radial-gradient(120%_120%_at_0%_0%,color-mix(in_oklab,var(--primary)_22%,transparent)_0%,transparent_60%)] shadow-lg">
+            <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-primary/25 blur-3xl" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+            <CardContent className="relative flex h-full flex-col justify-between gap-8 p-6 md:p-8">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Available balance</div>
+                <div className="mt-3 font-display text-5xl font-black leading-none tabular-nums md:text-6xl">{formatMoney(balance, currency)}</div>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-secondary/70 px-2.5 py-1"><Activity className="h-3 w-3 text-primary" /> {transactions.length} transactions</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-secondary/70 px-2.5 py-1"><Clock3 className="h-3 w-3 text-primary" /> {transactions.filter((t) => t.status === "pending").length} pending</span>
+                </div>
               </div>
-              <div className="mt-2 font-display text-4xl font-black tabular-nums text-foreground md:text-6xl">{formatMoney(balance, currency)}</div>
-              <div className="mt-1 text-xs text-muted-foreground">InstaGIG Wallet · Manual transfer approvals</div>
-            </div>
-            <div className="flex flex-col gap-2 self-end md:items-end">
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => setFundOpen(true)} className="font-semibold"><ArrowDownToLine className="h-4 w-4" /> Fund Account</Button>
-                <Button onClick={() => setWithdrawOpen(true)} variant="secondary"><ArrowUpFromLine className="h-4 w-4" /> Withdraw</Button>
-              </div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Moniepoint · Instant review</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <section>
-          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="font-display text-lg font-bold">Manual Bank Transfer</h2>
-              <p className="text-xs text-muted-foreground">Transfer to our Moniepoint account, upload proof, and your wallet will be credited once approved.</p>
-            </div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-              <Lock className="h-3 w-3" /> Secure review flow
-            </div>
-          </div>
-
-          <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-card via-card to-primary/10">
-            <CardContent className="grid gap-4 p-5 md:grid-cols-[1.1fr_0.9fr] md:p-6">
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-white/10 bg-background/70 p-4 backdrop-blur">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <Banknote className="h-4 w-4 text-primary" /> Transfer details
-                  </div>
-                  <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                      <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Bank Name</span>
-                      <span className="font-semibold text-foreground">Moniepoint</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                      <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Account Number</span>
-                      <span className="font-semibold text-foreground">9032743676</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                      <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Account Name</span>
-                      <span className="font-semibold text-foreground">GEORGE ETOHWO</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2 font-semibold text-foreground"><BadgeCheck className="h-4 w-4 text-primary" /> Fast review</div>
-                  <p className="mt-2">Use the form below to submit the exact amount you transferred. We’ll notify you the moment the deposit is approved.</p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-primary/20 bg-background/70 p-4 shadow-sm backdrop-blur">
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Building2 className="h-4 w-4 text-primary" /> Why it feels premium</div>
-                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-primary" />Lovely glassmorphism interface with polished interactions.</li>
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-primary" />Receipt upload is stored securely in Supabase storage.</li>
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-primary" />Approval requests are routed to a dedicated admin review page.</li>
-                </ul>
-                <Button onClick={() => setFundOpen(true)} className="mt-4 w-full"><ArrowDownToLine className="mr-2 h-4 w-4" /> Start transfer</Button>
+                <Button size="lg" onClick={() => setFundOpen(true)} className="flex-1 rounded-xl font-semibold sm:flex-none">
+                  <ArrowDownToLine className="h-4 w-4" /> Fund account
+                </Button>
+                <Button size="lg" onClick={() => setWithdrawOpen(true)} variant="secondary" className="flex-1 rounded-xl sm:flex-none">
+                  <ArrowUpFromLine className="h-4 w-4" /> Withdraw
+                </Button>
               </div>
             </CardContent>
           </Card>
-        </section>
+
+          <Card className="overflow-hidden border-border/70 bg-card/70 backdrop-blur">
+            <CardContent className="space-y-3 p-5 md:p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-semibold"><Banknote className="h-4 w-4 text-primary" /> Bank transfer details</div>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-primary">Manual</span>
+              </div>
+              <div className="space-y-2">
+                <CopyRow label="Bank" value="Moniepoint" />
+                <CopyRow label="Account number" value="9032743676" mono />
+                <CopyRow label="Account name" value="GEORGE ETOHWO" />
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Send the exact amount, then submit your receipt. Your balance is credited as soon as the transfer is approved.
+              </p>
+              <Button variant="outline" onClick={() => setFundOpen(true)} className="w-full rounded-xl">
+                <UploadCloud className="mr-2 h-4 w-4" /> Submit a transfer
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         <section>
           <h2 className="mb-3 font-display text-lg font-bold">Upgrade your plan</h2>
@@ -317,10 +307,43 @@ function WalletPage() {
 }
 
 function LedgerRow({ t, currency }: { t: WalletTx; currency: string }) {
+  return LedgerRowInner({ t, currency });
+}
+
+function CopyRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard?.writeText(value);
+        setCopied(true);
+        toast.success(`${label} copied`);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="group flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-2.5 text-left transition hover:border-primary/50 hover:bg-primary/5"
+    >
+      <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-2">
+        <span className={`text-sm font-semibold text-foreground ${mono ? "font-mono tracking-wide" : ""}`}>{value}</span>
+        {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground transition group-hover:text-primary" />}
+      </span>
+    </button>
+  );
+}
+
+function LedgerRowInner({ t, currency }: { t: WalletTx; currency: string }) {
   const positive = t.type === "deposit" || t.type === "refund";
   return (
-    <tr className="border-t border-border">
-      <td className="px-4 py-3 capitalize">{t.type}</td>
+    <tr className="border-t border-border transition hover:bg-secondary/40">
+      <td className="px-4 py-3">
+        <span className="inline-flex items-center gap-2 capitalize">
+          <span className={`grid h-7 w-7 place-items-center rounded-full ${positive ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"}`}>
+            {positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+          </span>
+          {t.type}
+        </span>
+      </td>
       <td className="px-4 py-3 text-muted-foreground">{t.description ?? "—"}</td>
       <td className={`px-4 py-3 text-right font-semibold tabular-nums ${positive ? "text-primary" : "text-destructive"}`}>
         {positive ? "+" : "−"}{formatMoney(t.amount, currency)}
@@ -399,44 +422,32 @@ function FundModal({ open, onOpenChange, userEmail, userName, onConfirm }: { ope
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-primary/20 bg-card/90 backdrop-blur-xl sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4 text-primary" /> Fund Account</DialogTitle>
-          <DialogDescription>Make a manual bank transfer to our Moniepoint account and submit proof for approval.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4 text-primary" /> Fund account</DialogTitle>
+          <DialogDescription>Transfer to the account below, then submit your proof for approval.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-background p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Banknote className="h-4 w-4 text-primary" /> Transfer details</div>
-            <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
-              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Bank</div>
-                <div className="mt-1 font-semibold text-foreground">Moniepoint</div>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Account</div>
-                <div className="mt-1 font-semibold text-foreground">9032743676</div>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 p-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Name</div>
-                <div className="mt-1 font-semibold text-foreground">GEORGE ETOHWO</div>
-              </div>
-            </div>
+        <div className="space-y-5">
+          <div className="grid gap-2 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent p-3">
+            <CopyRow label="Bank" value="Moniepoint" />
+            <CopyRow label="Account number" value="9032743676" mono />
+            <CopyRow label="Account name" value="GEORGE ETOHWO" />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Amount transferred</label>
-            <div className="mt-2 grid grid-cols-4 gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Amount transferred</label>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {PRESETS.map((p) => (
-                <button key={p} type="button" onClick={() => { setAmount(p); setCustom(""); }} className={`rounded-lg border px-3 py-2 text-sm font-semibold tabular-nums transition ${!custom && amount === p ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"}`}>
+                <button key={p} type="button" onClick={() => { setAmount(p); setCustom(""); }} className={`rounded-xl border px-3 py-2.5 text-sm font-semibold tabular-nums transition ${!custom && amount === p ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/40 hover:bg-primary/5"}`}>
                   ${p}
                 </button>
               ))}
-              <Input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ""))} placeholder="Custom" inputMode="decimal" />
+              <Input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ""))} placeholder="Custom" inputMode="decimal" className="h-auto rounded-xl" />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Receipt proof (optional)</label>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Receipt proof</label>
             <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-background/70 px-4 py-6 text-center transition hover:border-primary/60">
               <UploadCloud className="h-6 w-6 text-primary" />
               <span className="mt-2 text-sm font-medium text-foreground">{receiptFile ? receiptFile.name : "Upload image receipt"}</span>
@@ -446,23 +457,28 @@ function FundModal({ open, onOpenChange, userEmail, userName, onConfirm }: { ope
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground">Note to admin</label>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={`Hello, I transferred ${final || 0} to your Moniepoint account.`} className="mt-2 min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none ring-0" />
+            <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Note to admin</label>
+            <textarea
+              value={note}
+              onChange={(e) => { setNote(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${e.target.scrollHeight}px`; }}
+              placeholder={`Hello, I transferred ${final || 0} to your Moniepoint account.`}
+              className="mt-2 min-h-20 w-full resize-none overflow-hidden rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm outline-none transition focus:border-primary/60"
+            />
           </div>
 
-          <div className="rounded-xl border border-border/60 bg-background/80 p-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 text-foreground"><Clock3 className="h-4 w-4 text-primary" /> Review window</div>
-            <p className="mt-2">Your request will appear as pending until an admin approves it. A WhatsApp notification will be sent with an approval link.</p>
+          <div className="rounded-2xl border border-border/60 bg-background/60 p-3.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 font-medium text-foreground"><Clock3 className="h-4 w-4 text-primary" /> What happens next</div>
+            <p className="mt-2 text-xs leading-relaxed">Your request goes to pending and the receipt plus your details are sent to our WhatsApp line for review. You’ll be credited once approved.</p>
             <div className="mt-3 flex items-center justify-between text-xs">
-              <span>Recipient</span>
+              <span>Requested by</span>
               <span className="font-semibold text-foreground">{userName ?? userEmail ?? "You"}</span>
             </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!(final > 0) || isSubmitting || isUploading}>
+          <Button onClick={handleSubmit} disabled={!(final > 0) || isSubmitting || isUploading} className="rounded-xl font-semibold">
             {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading receipt</> : isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting</> : `Submit payment · $${final || 0}`}
           </Button>
         </DialogFooter>
