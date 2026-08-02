@@ -89,6 +89,19 @@ function WalletPage() {
 
       toast.success("Transfer request submitted. We’ll review it and credit your wallet once approved.");
       setFundOpen(false);
+
+      // Hand the proof off to the admin WhatsApp line
+      const lines = [
+        "New wallet funding request",
+        `Customer: ${user?.user_metadata?.full_name ?? user?.email ?? "Guest"}`,
+        `Email: ${user?.email ?? "n/a"}`,
+        `Amount: ${formatMoney(amount, currency)}`,
+        `Note: ${note || "—"}`,
+        `Receipt: ${receiptUrl ?? "not uploaded"}`,
+        `Time: ${new Date().toLocaleString()}`,
+      ].join("\n");
+      const waUrl = `https://wa.me/2349032743676?text=${encodeURIComponent(lines)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       throw new Error((error as Error).message || "We could not submit your funding request.");
     }
