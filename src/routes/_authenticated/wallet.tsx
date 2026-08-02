@@ -296,8 +296,15 @@ function WalletPage() {
 function LedgerRow({ t, currency }: { t: WalletTx; currency: string }) {
   const positive = t.type === "deposit" || t.type === "refund";
   return (
-    <tr className="border-t border-border">
-      <td className="px-4 py-3 capitalize">{t.type}</td>
+    <tr className="border-t border-border transition hover:bg-secondary/40">
+      <td className="px-4 py-3">
+        <span className="inline-flex items-center gap-2 capitalize">
+          <span className={`grid h-7 w-7 place-items-center rounded-full ${positive ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"}`}>
+            {positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+          </span>
+          {t.type}
+        </span>
+      </td>
       <td className="px-4 py-3 text-muted-foreground">{t.description ?? "—"}</td>
       <td className={`px-4 py-3 text-right font-semibold tabular-nums ${positive ? "text-primary" : "text-destructive"}`}>
         {positive ? "+" : "−"}{formatMoney(t.amount, currency)}
