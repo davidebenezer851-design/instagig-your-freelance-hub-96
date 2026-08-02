@@ -83,6 +83,18 @@ function dayLabel(iso: string): string {
 }
 
 function MessagesPage() {
+function listStamp(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const yest = new Date(today); yest.setDate(yest.getDate() - 1);
+  const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 6);
+  const dd = new Date(d); dd.setHours(0, 0, 0, 0);
+  if (dd.getTime() === today.getTime()) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (dd.getTime() === yest.getTime()) return "Yesterday";
+  if (dd >= weekAgo) return d.toLocaleDateString([], { weekday: "long" });
+  return d.toLocaleDateString([], { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+
   const { user } = useAuth();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
