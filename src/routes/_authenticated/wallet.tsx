@@ -294,6 +294,32 @@ function WalletPage() {
 }
 
 function LedgerRow({ t, currency }: { t: WalletTx; currency: string }) {
+  return LedgerRowInner({ t, currency });
+}
+
+function CopyRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard?.writeText(value);
+        setCopied(true);
+        toast.success(`${label} copied`);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="group flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-2.5 text-left transition hover:border-primary/50 hover:bg-primary/5"
+    >
+      <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-2">
+        <span className={`text-sm font-semibold text-foreground ${mono ? "font-mono tracking-wide" : ""}`}>{value}</span>
+        {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground transition group-hover:text-primary" />}
+      </span>
+    </button>
+  );
+}
+
+function LedgerRowInner({ t, currency }: { t: WalletTx; currency: string }) {
   const positive = t.type === "deposit" || t.type === "refund";
   return (
     <tr className="border-t border-border transition hover:bg-secondary/40">
