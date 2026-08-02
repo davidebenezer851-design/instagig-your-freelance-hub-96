@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Camera, Check, CheckCheck, File as FileIcon, Forward, Image as ImageIcon, Mic, Paperclip, Reply, Send, Smile, X, Loader2, Download, ArrowLeft, Trash2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -80,6 +79,18 @@ function dayLabel(iso: string): string {
   if (dd.getTime() === yest.getTime()) return "Yesterday";
   if (dd >= weekAgo) return d.toLocaleDateString([], { weekday: "long" });
   return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", year: dd.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+}
+
+function listStamp(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const yest = new Date(today); yest.setDate(yest.getDate() - 1);
+  const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 6);
+  const dd = new Date(d); dd.setHours(0, 0, 0, 0);
+  if (dd.getTime() === today.getTime()) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (dd.getTime() === yest.getTime()) return "Yesterday";
+  if (dd >= weekAgo) return d.toLocaleDateString([], { weekday: "long" });
+  return d.toLocaleDateString([], { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
 function MessagesPage() {
@@ -325,7 +336,7 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
               <span className="flex items-center justify-between gap-2">
                 <span className={`truncate text-sm ${unread > 0 ? "font-semibold text-foreground" : "font-medium"}`}>{name}</span>
                 <span className={`shrink-0 text-[10px] ${unread > 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                  {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: false })}
+                  {listStamp(conversation.last_message_at)}
                 </span>
               </span>
               <span className={`mt-0.5 block truncate text-xs ${unread > 0 ? "font-medium text-foreground/80" : "text-muted-foreground"}`}>
