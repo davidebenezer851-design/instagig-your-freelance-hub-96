@@ -337,7 +337,7 @@ function ConversationListItem({ conversation, active, onOpen, onDelete }: { conv
               <span className="flex items-center justify-between gap-2">
                 <span className={`truncate text-sm ${unread > 0 ? "font-semibold text-foreground" : "font-medium"}`}>{name}</span>
                 <span className={`shrink-0 text-[10px] ${unread > 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                  {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: false })}
+                  {listStamp(conversation.last_message_at)}
                 </span>
               </span>
               <span className={`mt-0.5 block truncate text-xs ${unread > 0 ? "font-medium text-foreground/80" : "text-muted-foreground"}`}>
