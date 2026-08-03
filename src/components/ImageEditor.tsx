@@ -44,12 +44,21 @@ export function ImageEditor({
   const onCropComplete = useCallback((_: Area, px: Area) => setAreaPx(px), []);
 
   async function confirm() {
-    if (!file || !areaPx) return;
+    if (!file) return;
     setBusy(true);
-    const blob = await getCroppedBlob(src, areaPx, rotation, file.type || "image/jpeg");
-    const url = URL.createObjectURL(blob);
-    setBusy(false);
-    onConfirm(blob, url);
+    try {
+      if (areaPx) {
+        const blob = await getCroppedBlob(src, areaPx, rotation, file.type || "image/jpeg");
+        onConfirm(blob, URL.createObjectURL(blob));
+      } else {
+        // Crop area not ready (image still measuring) — send the original file.
+        onConfirm(file, URL.createObjectURL(file));
+      }
+    } catch {
+      onConfirm(file, URL.createObjectURL(file));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
