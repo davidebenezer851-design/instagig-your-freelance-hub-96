@@ -12,7 +12,7 @@ import { useWallet, formatMoney, type WalletTx } from "@/hooks/useWallet";
 import { ArrowDownToLine, ArrowUpFromLine, Wallet as WalletIcon, Search, ShoppingBag, Sparkles, Zap, ShieldCheck, Crown, Check, Banknote, UploadCloud, Loader2, Clock3, Lock, Copy, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { submitWalletFundingRequestFn } from "@/lib/wallet-submit.server";
+import { submitWalletFundingRequestFn } from "@/lib/wallet-submit.functions";
 
 const searchSchema = z.object({
   upgrade: z.enum(["pro", "business"]).optional(),

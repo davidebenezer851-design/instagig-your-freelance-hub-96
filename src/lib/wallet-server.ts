@@ -20,9 +20,13 @@ function getEnv(name: string) {
 }
 
 function buildAdminUrl(request: Request, transactionId: string) {
-  const requestUrl = new URL(request.url);
-  const origin = request.headers.get("origin") ?? request.headers.get("x-forwarded-host") ?? requestUrl.origin;
-  return new URL(`/admin-transactions?tx=${encodeURIComponent(transactionId)}`, origin).toString();
+  try {
+    const requestUrl = new URL(request.url);
+    const origin = request.headers.get("origin") ?? requestUrl.origin;
+    return new URL(`/admin-transactions?tx=${encodeURIComponent(transactionId)}`, origin).toString();
+  } catch {
+    return `/admin-transactions?tx=${encodeURIComponent(transactionId)}`;
+  }
 }
 
 async function sendWhatsAppNotification(request: Request, payload: WalletRequestPayload, transactionId: string) {
@@ -115,7 +119,12 @@ export async function submitWalletFundingRequest(request: Request, payload: Wall
 
   if (error) throw error;
 
-  await sendWhatsAppNotification(request, payload, data.id);
+  // Notification must never fail the deposit request itself.
+  try {
+    await sendWhatsAppNotification(request, payload, data.id);
+  } catch (err) {
+    console.error("[wallet] WhatsApp notification failed", err);
+  }
 
   return { transaction: data };
 }
