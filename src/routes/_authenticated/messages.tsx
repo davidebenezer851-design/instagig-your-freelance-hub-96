@@ -582,12 +582,19 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
   }
 
   async function uploadOne(p: Pending) {
-    const ext = p.name.includes(".") ? p.name.split(".").pop() : (p.type.split("/")[1] || "bin");
+    const contentType = p.type || (p.file as File).type || "application/octet-stream";
+    const rawExt = p.name.includes(".") ? p.name.split(".").pop() : contentType.split("/")[1];
+    const ext = (rawExt || "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "bin";
     const path = `${user!.id}/messages/${convId}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("post-attachments").upload(path, p.file, { contentType: p.type, cacheControl: "3600" });
-    if (error) throw error;
-    const { data } = await supabase.storage.from("post-attachments").createSignedUrl(path, 60 * 60 * 24 * 365);
-    return { url: data?.signedUrl ?? "", type: p.type, name: p.name, size: p.size };
+    const { error } = await supabase.storage
+      .from("post-attachments")
+      .upload(path, p.file, { contentType, cacheControl: "3600", upsert: false });
+    if (error) throw new Error(`Upload failed (${p.name}): ${error.message}`);
+    const { data, error: signErr } = await supabase.storage
+      .from("post-attachments")
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (signErr || !data?.signedUrl) throw new Error(`Could not link file (${p.name}): ${signErr?.message ?? "no URL"}`);
+    return { url: data.signedUrl, type: contentType, name: p.name, size: p.size };
   }
 
   async function send() {
@@ -639,25 +646,33 @@ function ChatPanel({ convId, onBack }: { convId: string; onBack: () => void }) {
   }
 
   async function startRecording() {
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      toast.error("Voice notes aren't supported in this browser");
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+      const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus", "audio/ogg"];
+      const mime = candidates.find((c) => MediaRecorder.isTypeSupported?.(c)) ?? "";
       const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       recChunksRef.current = [];
       rec.ondataavailable = (e) => { if (e.data.size) recChunksRef.current.push(e.data); };
       rec.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null; }
-        const blob = new Blob(recChunksRef.current, { type: mime || "audio/webm" });
-        if (blob.size > 0) addPendingFile(blob, `voice-${Date.now()}.webm`, blob.type);
+        const type = (recChunksRef.current[0]?.type || mime || "audio/webm").split(";")[0];
+        const blob = new Blob(recChunksRef.current, { type });
+        const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+        if (blob.size > 0) addPendingFile(blob, `voice-${Date.now()}.${ext}`, type);
+        else toast.error("Recording was empty — try holding a bit longer");
         setRecording(false); setRecSecs(0);
       };
       mediaRecorderRef.current = rec;
-      rec.start();
+      rec.start(250);
       setRecording(true); setRecSecs(0);
       recTimerRef.current = setInterval(() => setRecSecs((s) => s + 1), 1000);
-    } catch {
-      toast.error("Microphone permission denied");
+    } catch (e) {
+      toast.error((e as Error)?.message || "Microphone permission denied");
     }
   }
   function stopRecording() { mediaRecorderRef.current?.state === "recording" && mediaRecorderRef.current.stop(); }
