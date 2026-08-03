@@ -47,31 +47,36 @@ async function sendWhatsAppNotification(request: Request, payload: WalletRequest
     `Review: ${adminUrl}`,
   ].join("\n");
 
-  const twilioSid = getEnv("TWILIO_ACCOUNT_SID");
-  const twilioToken = getEnv("TWILIO_AUTH_TOKEN");
-  const twilioFrom = getEnv("TWILIO_WHATSAPP_FROM");
   const phoneNumber = getEnv("WHATSAPP_TO_NUMBER") || "+2349032743676";
+  const lovableKey = getEnv("LOVABLE_API_KEY");
+  const twilioKey = getEnv("TWILIO_API_KEY");
+  // Defaults to the Twilio WhatsApp sandbox sender; override with TWILIO_WHATSAPP_FROM.
+  const twilioFrom = getEnv("TWILIO_WHATSAPP_FROM") || "+14155238886";
 
-  if (twilioSid && twilioToken && twilioFrom) {
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+  if (lovableKey && twilioKey) {
     const form = new URLSearchParams({
       To: `whatsapp:${phoneNumber}`,
       From: `whatsapp:${twilioFrom}`,
       Body: message,
     });
+    if (payload.receiptUrl?.trim()) form.set("MediaUrl", payload.receiptUrl.trim());
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${twilioSid}:${twilioToken}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: form,
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "") ;
-      console.error(`[wallet] WhatsApp send failed: ${response.status} ${text}`);
+    try {
+      const response = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": twilioKey,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: form,
+      });
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        console.error(`[wallet] WhatsApp send failed: ${response.status} ${text}`);
+      }
+    } catch (err) {
+      console.error("[wallet] WhatsApp send error", err);
     }
     return;
   }
